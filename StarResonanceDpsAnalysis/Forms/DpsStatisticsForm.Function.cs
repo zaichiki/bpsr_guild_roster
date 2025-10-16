@@ -23,33 +23,33 @@ namespace StarResonanceDpsAnalysis.Forms
 {
     public partial class DpsStatisticsForm
     {
-        // # 导航
-        // # 本文件主要职责：
-        // #   1) 启动/停止网络抓包的生命周期管理（StartCapture/StopCapture）。
-        // #   2) 清空/重置统计数据与图表（HandleClearData/ListClear）。
-        // #   3) 初始化用户与控件样式（InitTableColumnsConfigAtFirstRun/SetStyle）。
-        // #   4) 处理数据包到达事件，将原始数据交给 PacketAnalyzer（Device_OnPacketArrival）。
-        // #   5) 构建并刷新 DPS/治疗/承伤的 UI 列表（RefreshDpsTable/BuildUiRows）。
-        // # 事件分类索引：
-        // #   * [启动与初始化事件] InitTableColumnsConfigAtFirstRun / LoadNetworkDevices / SetStyle
-        // #   * [抓包事件] StartCapture / StopCapture / Device_OnPacketArrival
-        // #   * [清理与复位事件] HandleClearData / ListClear
-        // #   * [UI 刷新事件] RefreshDpsTable / BuildUiRows
-        // #   * [线程安全与状态] _dataLock / _isClearing / IsCaptureStarted / SelectedDevice
+        // # Navigation
+        // # This file main responsibilities:
+        // #   1) Start/stop network packet capture lifecycle management (StartCapture/StopCapture).
+        // #   2) Clear/reset statistics data and charts (HandleClearData/ListClear).
+        // #   3) Initialize user and control styles (InitTableColumnsConfigAtFirstRun/SetStyle).
+        // #   4) Handle packet arrival events, pass raw data to PacketAnalyzer (Device_OnPacketArrival).
+        // #   5) Build and refresh DPS/healing/damage taken UI lists (RefreshDpsTable/BuildUiRows).
+        // # Event classification index:
+        // #   * [Startup and initialization events] InitTableColumnsConfigAtFirstRun / LoadNetworkDevices / SetStyle
+        // #   * [Packet capture events] StartCapture / StopCapture / Device_OnPacketArrival
+        // #   * [Cleanup and reset events] HandleClearData / ListClear
+        // #   * [UI refresh events] RefreshDpsTable / BuildUiRows
+        // #   * [Thread safety and state] _dataLock / _isClearing / IsCaptureStarted / SelectedDevice
 
-        #region 加载 网卡 启动设备/初始化 统计数据/ 启动 抓包/停止抓包/清空数据/ 关闭 事件
+        #region Load network cards, startup devices/initialize statistics data/start packet capture/stop packet capture/clear data/close events
         private void InitTableColumnsConfigAtFirstRun()
         {
-            // # 启动与初始化事件：首次运行初始化表头配置 & 绑定本机身份信息
+            // # Startup and initialization event: first run initialization of table header configuration & bind local identity information
             if (AppConfig.GetConfigExists())
             {
                 AppConfig.ClearPicture = AppConfig.GetValue("UserConfig", "ClearPicture", "1").ToInt();
-                AppConfig.NickName = AppConfig.GetValue("UserConfig", "NickName", "未知");
+                AppConfig.NickName = AppConfig.GetValue("UserConfig", "NickName", "Unknown");
                 AppConfig.Uid = (ulong)AppConfig.GetValue("UserConfig", "Uid", "0").ToInt();
                 AppConfig.Profession = AppConfig.GetValue("UserConfig", "Profession", Properties.Strings.Profession_Unknown);
                 AppConfig.CombatPower = AppConfig.GetValue("UserConfig", "CombatPower", "0").ToInt();
 
-                // 写入本地统计缓存（用于 UI 初始显示）
+                // Write to local statistics cache (for UI initial display)
                 StatisticData._manager.SetNickname(AppConfig.Uid, AppConfig.NickName);
                 StatisticData._manager.SetProfession(AppConfig.Uid, AppConfig.Profession);
                 StatisticData._manager.SetCombatPower(AppConfig.Uid, AppConfig.CombatPower);
@@ -57,59 +57,59 @@ namespace StarResonanceDpsAnalysis.Forms
                 if (AppConfig.Uid != 0)
                 {
 
-                    // 回填完成后按当前视图刷新（避免依赖后续抓包）
+                    // Refresh current view after backfill completion (avoid dependency on subsequent packet capture)
                     RequestActiveViewRefresh();
                 }
 
-                SortedProgressBarStatic = this.sortedProgressBarList1; // # 关键：这里绑定实例
+                SortedProgressBarStatic = this.sortedProgressBarList1; // # Key: bind instance here
                 return;
             }
         }
 
-        #region —— 抓包设备/统计 —— 
+        #region —— Packet capture devices/statistics —— 
 
-        public static ICaptureDevice? SelectedDevice { get; set; } = null; // # 抓包设备：程序选中的网卡设备（可能为null，依据设置初始化）
+        public static ICaptureDevice? SelectedDevice { get; set; } = null; // # Packet capture device: network card device selected by program (may be null, initialized based on settings)
 
         /// <summary>
-        /// 分析器
+        /// Analyzer
         /// </summary>
-        private PacketAnalyzer PacketAnalyzer { get; } = new(); // # 抓包/分析器：每个到达的数据包交由该分析器处理
+        private PacketAnalyzer PacketAnalyzer { get; } = new(); // # Packet capture/analyzer: each arriving packet is processed by this analyzer
         #endregion
 
         /// <summary>
-        /// 启动时加载网卡设备
+        /// Load network card devices at startup
         /// </summary>
         public void LoadNetworkDevices()
         {
-            // # 启动与初始化事件：应用启动阶段加载网络设备列表，依据配置选择默认网卡
-            Console.WriteLine("应用程序启动时加载网卡...");
+            // # Startup and initialization event: load network device list during application startup phase, select default network card based on configuration
+            Console.WriteLine("Loading network cards during application startup...");
 
             if (AppConfig.NetworkCard >= 0)
             {
-                var devices = CaptureDeviceList.Instance; // # 设备列表：SharpPcap 提供
+                var devices = CaptureDeviceList.Instance; // # Device list: provided by SharpPcap
                 if (AppConfig.NetworkCard < devices.Count)
                 {
-                    SelectedDevice = devices[AppConfig.NetworkCard]; // # 根据索引选择设备
-                    Console.WriteLine($"启动时已选择网卡: {SelectedDevice.Description} (索引: {AppConfig.NetworkCard})");
+                    SelectedDevice = devices[AppConfig.NetworkCard]; // # Select device based on index
+                    Console.WriteLine($"Network card selected at startup: {SelectedDevice.Description} (index: {AppConfig.NetworkCard})");
                 }
             }
             else
             {
-                // 未设置时弹出设置窗口，引导用户选择
+                // When not set, popup settings window to guide user selection
                 if (FormManager.settingsForm == null || FormManager.settingsForm.IsDisposed)
                 {
                     FormManager.settingsForm = new SettingsForm();
                 }
-                FormManager.settingsForm.LoadDevices(); // # 设置窗体：填充设备列表
+                FormManager.settingsForm.LoadDevices(); // # Settings form: populate device list
             }
         }
 
         /// <summary>
-        /// 数据包到达事件
+        /// Packet arrival event
         /// </summary>
         private void Device_OnPacketArrival(object sender, PacketCapture e)
         {
-            // # 抓包事件：回调于数据包到达时（SharpPcap线程）
+            // # Packet capture event: callback when packet arrives (SharpPcap thread)
             try
             {
                 var dev = (ICaptureDevice)sender;
@@ -117,48 +117,48 @@ namespace StarResonanceDpsAnalysis.Forms
             }
             catch (Exception ex)
             {
-                // # 异常保护：避免抓包线程因未处理异常中断
-                Console.WriteLine($"数据包到达后进行处理时发生异常 {ex.Message}\r\n{ex.StackTrace}");
+                // # Exception protection: avoid packet capture thread interruption due to unhandled exceptions
+                Console.WriteLine($"Exception occurred while processing packet after arrival {ex.Message}\r\n{ex.StackTrace}");
             }
         }
-        #region StartCapture() 抓包：开始/停止/事件/统计
+        #region StartCapture() Packet capture: start/stop/events/statistics
         /// <summary>
-        /// 是否开始抓包
+        /// Whether packet capture has started
         /// </summary>
-        private static bool IsCaptureStarted { get; set; } = false; // # 运行状态：标识当前是否处于抓包/监控中
+        private static bool IsCaptureStarted { get; set; } = false; // # Runtime state: indicates whether currently in packet capture/monitoring
 
         /// <summary>
-        /// 开始抓包
+        /// Start packet capture
         /// </summary>
         public async void StartCapture()
         {
-            // # 抓包事件：用户点击“开始”或自动启动时触发
-            // # 步骤 1：前置校验 —— 网络设备索引/可用性检查
+            // # Packet capture event: triggered when user clicks "Start" or auto-start
+            // # Step 1: Pre-validation —— network device index/availability check
             if (AppConfig.NetworkCard < 0)
             {
-                MessageBox.Show("请选择一个网卡设备");
+                MessageBox.Show("Please select a network card device");
                 return;
             }
 
             var devices = CaptureDeviceList.Instance;
             if (devices == null || devices.Count == 0)
-                throw new InvalidOperationException("没有找到可用的网络抓包设备");
+                throw new InvalidOperationException("No available network packet capture devices found");
 
             if (AppConfig.NetworkCard < 0 || AppConfig.NetworkCard >= devices.Count)
-                throw new InvalidOperationException($"无效的网络设备索引: {AppConfig.NetworkCard}");
+                throw new InvalidOperationException($"Invalid network device index: {AppConfig.NetworkCard}");
 
             SelectedDevice = devices[AppConfig.NetworkCard];
             if (SelectedDevice == null)
-                throw new InvalidOperationException($"无法获取网络设备，索引: {AppConfig.NetworkCard}");
+                throw new InvalidOperationException($"Unable to get network device, index: {AppConfig.NetworkCard}");
 
             await Task.Delay(1000);
-            // # 步骤 3：图表历史与自动刷新 —— 开始新的战斗记录
+            // # Step 3: Chart history and auto-refresh —— start new battle record
             ChartVisualizationService.ClearAllHistory();
 
-            // 启动所有图表的自动刷新 + 后台采样（满足“从DPS伤害开始就加载曲线”）
+            // Start auto-refresh for all charts + background sampling (satisfies "load curves from DPS damage start")
             ChartVisualizationService.StartAllChartsAutoRefresh(1000);
 
-            // # 步骤 4：打开并启动设备监听 —— 绑定回调、设置过滤器
+            // # Step 4: Open and start device monitoring —— bind callbacks, set filters
             SelectedDevice.Open(new DeviceConfiguration
             {
                 Mode = DeviceModes.Promiscuous,
@@ -170,49 +170,49 @@ namespace StarResonanceDpsAnalysis.Forms
             SelectedDevice.OnPacketArrival += new PacketArrivalEventHandler(Device_OnPacketArrival);
             SelectedDevice.StartCapture();
 
-            // # 步骤 5：标记状态、启动全程记录器
+            // # Step 5: Mark state, start full record logger
             IsCaptureStarted = true;
             FullRecord.Start();
-            Console.WriteLine("开始抓包...");
+            Console.WriteLine("Starting packet capture...");
         }
 
         /// <summary>
-        /// 停止抓包
+        /// Stop packet capture
         /// </summary>
         public void StopCapture()
         {
-            // # 抓包事件：用户点击“停止”或程序退出前触发
-            // # 步骤 1：先停止所有图表的自动刷新，防止在停止抓包后继续更新数据
+            // # Packet capture event: triggered when user clicks "Stop" or before program exit
+            // # Step 1: First stop auto-refresh for all charts to prevent continued data updates after stopping packet capture
             ChartVisualizationService.StopAllChartsAutoRefresh();
 
-            // 在停止抓包时，通知图表服务战斗结束，确保显示最终的0值状态
+            // When stopping packet capture, notify chart service that battle has ended to ensure final 0-value state is displayed
             ChartVisualizationService.OnCombatEnd();
 
             if (SelectedDevice != null)
             {
                 try
                 {
-                    // # 步骤 2：解绑事件，避免回调访问已释放对象
+                    // # Step 2: Unbind events to avoid callbacks accessing disposed objects
                     SelectedDevice.OnPacketArrival -= Device_OnPacketArrival;
 
-                    // # 步骤 3：停止抓包（内部通常是异步）
+                    // # Step 3: Stop packet capture (usually asynchronous internally)
                     SelectedDevice.StopCapture();
 
-                    // # 步骤 4：等待后台捕获线程真正退出（简单轮询，最多 ~1s）
+                    // # Step 4: Wait for background capture thread to actually exit (simple polling, max ~1s)
                     for (int i = 0; i < 100; i++)
                     {
                         if (!(SelectedDevice.Started)) break;
                         System.Threading.Thread.Sleep(10);
                     }
 
-                    // # 步骤 5：关闭并释放句柄（Dispose 很关键）
+                    // # Step 5: Close and release handles (Dispose is critical)
                     SelectedDevice.Close();
                     SelectedDevice.Dispose();
-                    Console.WriteLine("停止抓包");
+                    Console.WriteLine("Stopped packet capture");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"停止抓包异常: {ex}");
+                    Console.WriteLine($"Stop packet capture exception: {ex}");
                 }
                 finally
                 {
@@ -220,50 +220,50 @@ namespace StarResonanceDpsAnalysis.Forms
                 }
             }
 
-            // # 步骤 6：状态复位与解析状态清空
+            // # Step 6: State reset and parsing state clear
             IsCaptureStarted = false;
 
-            // 清空解析/重组状态
+            // Clear parsing/reassembly state
             PacketAnalyzer.ResetCaptureState();
 
-            // # 步骤 7：更新 UI 上的网卡设置提示
+            // # Step 7: Update network card setting tip on UI
             StartupInitializer.RefreshNetworkCardSettingTip();
         }
 
-        #region HandleClearData() 响应清空数据
+        #region HandleClearData() Respond to clear data
 
         public void HandleClearData(bool ClearPicture = false)
         {
-            // # 清理与复位事件：用户点击“清空”时触发（不影响抓包的开启/关闭状态）
-            // 先停止所有图表的自动刷新
+            // # Cleanup and reset event: triggered when user clicks "Clear" (does not affect packet capture start/stop state)
+            // First stop auto-refresh for all charts
             ChartVisualizationService.StopAllChartsAutoRefresh();
 
-            // 在清空数据前，通知图表服务战斗结束
+            // Before clearing data, notify chart service that battle has ended
             ChartVisualizationService.OnCombatEnd();
             if (FormManager.showTotal && !ClearPicture)
             {
-                FullRecord.Reset(false);//全程统计数据清空
-                // 同步清理“全程曲线”历史，确保时间轴从 0 重新开始
+                FullRecord.Reset(false);//Clear full record statistics data
+                // Synchronously clear "full record curve" history to ensure timeline restarts from 0
                 ChartVisualizationService.ClearFullHistory();
             }
 
             ListClear();
 
-            // 仅清空当次曲线历史，保留全程曲线（满足“全程伤害从伤害开始记录到F9刷新”）
+            // Only clear current curve history, preserve full record curve (satisfies "full record damage recorded from damage start to F9 refresh")
             ChartVisualizationService.ClearCurrentHistory();
 
-            // 如果当前正在抓包，重新启动图表自动刷新（继续后台采样）
+            // If currently capturing packets, restart chart auto-refresh (continue background sampling)
             if (IsCaptureStarted)
             {
                 ChartVisualizationService.StartAllChartsAutoRefresh(1000);
             }
         }
         private readonly object _dataLock = new();
-        private int _isClearing = 0; // 0: 正常，1: 清空中
+        private int _isClearing = 0; // 0: normal, 1: clearing
         public void ListClear()
         {
-            // # 清理与复位事件：清空 UI 进度条列表与缓存（线程安全）
-            if (Interlocked.Exchange(ref _isClearing, 1) == 1) return; // 已在清空中
+            // # Cleanup and reset event: clear UI progress bar list and cache (thread-safe)
+            if (Interlocked.Exchange(ref _isClearing, 1) == 1) return; // Already clearing
 
             StatisticData._manager.ClearAll();
             SkillTableDatas.SkillTable.Clear();
@@ -273,13 +273,13 @@ namespace StarResonanceDpsAnalysis.Forms
             {
                 lock (_dataLock)
                 {
-                    // # 清空在内存中的数据模型
+                    // # Clear data models in memory
                     DictList.Clear();
                     list.Clear();
                     userRenderContent.Clear();
-                    // UI 组件缓存清空（注意切回 UI 线程）
+                    // UI component cache clear (note: switch back to UI thread)
                     var ctrl = SortedProgressBarStatic;
-                    // ListClear() — 清空 UI
+                    // ListClear() — clear UI
                     if (ctrl != null && !ctrl.IsDisposed)
                     {
                         if (ctrl.InvokeRequired)
@@ -292,7 +292,7 @@ namespace StarResonanceDpsAnalysis.Forms
             }
             finally
             {
-                // # 退出清空状态
+                // # Exit clearing state
                 Volatile.Write(ref _isClearing, 0);
             }
         }
@@ -304,8 +304,8 @@ namespace StarResonanceDpsAnalysis.Forms
 
         public void SetStyle()
         {
-            // # 启动与初始化事件：界面样式与渲染设置（仅 UI 外观，不涉及数据）
-            // ======= 单个进度条（textProgressBar1）的外观设置 =======
+            // # Startup and initialization event: interface style and rendering settings (UI appearance only, no data involved)
+            // ======= Single progress bar (textProgressBar1) appearance settings =======
             sortedProgressBarList1.OrderImageOffset = new RenderContent.ContentOffset { X = 6, Y = 0 };
             sortedProgressBarList1.OrderImageRenderSize = new Size(22, 22);
             sortedProgressBarList1.OrderOffset = new RenderContent.ContentOffset { X = 32, Y = 0 };
@@ -328,10 +328,10 @@ namespace StarResonanceDpsAnalysis.Forms
 
             sortedProgressBarList1.OrderFont = AppConfig.SaoFont;
 
-            // ======= 进度条列表（sortedProgressBarList1）的初始化与外观 =======
-            sortedProgressBarList1.ProgressBarHeight = AppConfig.ProgressBarHeight;  // 每行高度
-            sortedProgressBarList1.AnimationDuration = 1000; // 动画时长（毫秒）
-            sortedProgressBarList1.AnimationQuality = Quality.Low; // 动画品质（你项目里的枚举）
+            // ======= Progress bar list (sortedProgressBarList1) initialization and appearance =======
+            sortedProgressBarList1.ProgressBarHeight = AppConfig.ProgressBarHeight;  // Height per row
+            sortedProgressBarList1.AnimationDuration = 1000; // Animation duration (milliseconds)
+            sortedProgressBarList1.AnimationQuality = Quality.Low; // Animation quality (enum in your project)
             //sortedProgressBarList1.OrderImages =
             //[
             //    new Bitmap(new MemoryStream(Resources.皇冠)),
@@ -339,32 +339,32 @@ namespace StarResonanceDpsAnalysis.Forms
             //];
         }
 
-        // 当前是否停留在“NPC 攻击者榜”详情
+        // Whether currently staying on "NPC attacker leaderboard" detail
         private volatile bool _npcDetailMode = false;
-        // 详情里正在查看的 NPC Id
+        // NPC Id currently being viewed in detail
         private ulong _npcFocusId = 0;
 
         /// <summary>
-        /// 实例化 SortedProgressBarList 控件
+        /// Instantiate SortedProgressBarList control
         /// </summary>
         public static SortedProgressBarList SortedProgressBarStatic { get; private set; }
 
         /// <summary>
-        /// 用户战斗数据字典
+        /// User battle data dictionary
         /// </summary>
         readonly static Dictionary<long, List<RenderContent>> DictList = new Dictionary<long, List<RenderContent>>();
 
         /// <summary>
-        /// 用户战斗数据更新事件
+        /// User battle data update event
         /// </summary>
         static List<ProgressBarData> list = new List<ProgressBarData>();
 
         /// <summary>
-        /// 用户在底下显示自己的信息
+        /// User displays their own information at the bottom
         /// </summary>
         static List<RenderContent> userRenderContent = new List<RenderContent>();
 
-        //白窗体
+        //Light form
         Dictionary<string, Color> colorDict = new Dictionary<string, Color>()
         {
                 { Properties.Strings.Profession_Unknown, ColorTranslator.FromHtml("#67AEF6") },
@@ -397,7 +397,7 @@ namespace StarResonanceDpsAnalysis.Forms
 
         };
 
-        // 黑窗体
+        //Dark form
         Dictionary<string, Color> blackColorDict = new Dictionary<string, Color>()
         {
                 { Properties.Strings.Profession_Unknown, ColorTranslator.FromHtml("#67AEF6") },
@@ -432,7 +432,7 @@ namespace StarResonanceDpsAnalysis.Forms
         {
             var bmp = new Bitmap(w, h, PixelFormat.Format32bppArgb);
             using (var g = Graphics.FromImage(bmp))
-                g.Clear(Color.Transparent);   // 完全透明
+                g.Clear(Color.Transparent);   // Completely transparent
             return bmp;
         }
         public static Dictionary<string, Bitmap> imgDict = new Dictionary<string, Bitmap>() // convert to resource key
@@ -466,7 +466,7 @@ namespace StarResonanceDpsAnalysis.Forms
         public enum SourceType { Current, FullRecord }
         public enum MetricType { Damage, Healing, Taken, NpcTaken }
 
-        // 提供一个静态入口，供回填后请求一次按当前视图刷新
+        // Provide a static entry point for requesting refresh of current view after backfill
         public static void RequestActiveViewRefresh()
         {
             try
@@ -489,7 +489,7 @@ namespace StarResonanceDpsAnalysis.Forms
             }
             catch { }
         }
-        // NPC总览行：一个NPC一行
+        // NPC overview row: one NPC per row
         private class NpcRow
         {
             public long NpcId;
@@ -497,7 +497,7 @@ namespace StarResonanceDpsAnalysis.Forms
             public ulong TotalTaken;
             public double TakenPerSec;
         }
-        // 对某个NPC的攻击者行（仍然是玩家行，样式复用）
+        // Attacker row for a specific NPC (still player row, style reuse)
         private class NpcAttackerRow
         {
             public long Uid;
@@ -506,8 +506,8 @@ namespace StarResonanceDpsAnalysis.Forms
             public string Profession;
             public string SubProfession;
             public ulong DamageToNpc;
-            public double PlayerDps;   // 玩家全程DPS（信息项）
-            public double NpcOnlyDps;  // 该玩家对这个NPC的专属DPS（进度条主要依据）
+            public double PlayerDps;   // Player full record DPS (info item)
+            public double NpcOnlyDps;  // This player's exclusive DPS for this NPC (main basis for progress bar)
         }
 
         private class UiRow
@@ -523,14 +523,14 @@ namespace StarResonanceDpsAnalysis.Forms
 
         public void RefreshDpsTable(SourceType source, MetricType metric)
         {
-            // # UI 刷新事件：根据指定数据源（单次/全程）与指标（伤害/治疗/承伤）对进度条列表进行重建与绑定
+            // # UI refresh event: rebuild and bind progress bar list based on specified data source (single/full record) and metrics (damage/healing/damage taken)
             if (Interlocked.CompareExchange(ref _isClearing, 0, 0) == 1) return;
-            // —— 闸门 #1：开始前校验当前可见视图是否匹配 ——
+            // —— Gate #1: validate current visible view matches before starting ——
             var visible = FormManager.showTotal ? SourceType.FullRecord : SourceType.Current;
             if (source != visible) return;
 
             var uiList = BuildUiRows(source, metric)
-                .Where(r => (r?.Total ?? 0) > 0)   // 过滤 0 值（伤害/治疗/承伤都适用）
+                .Where(r => (r?.Total ?? 0) > 0)   // Filter 0 values (applies to damage/healing/damage taken)
                 .ToList();
 
             if (uiList.Count == 0)
@@ -552,7 +552,7 @@ namespace StarResonanceDpsAnalysis.Forms
             {
                 if (_isClearing == 1) return;
 
-                // 1) 拍当前 list 的快照，用它参与所有枚举相关计算
+                // 1) Take snapshot of current list, use it for all enumeration-related calculations
                 var snapshot = list
                     .GroupBy(pb => pb.ID)
                     .Select(g => g.Last())
@@ -560,16 +560,16 @@ namespace StarResonanceDpsAnalysis.Forms
 
                 var present = new HashSet<long>(ordered.Select(x => x.Uid));
 
-                // 2) 先用快照算需要删除的旧行（避免直接枚举原 list）
+                // 2) First calculate old rows to delete using snapshot (avoid directly enumerating original list)
                 var toRemove = snapshot.Where(pb => !present.Contains(pb.ID))
                                        .Select(pb => pb.ID)
                                        .ToList();
 
-                // 3) 基于快照建立索引，后面查找更快也更安全
+                // 3) Build index based on snapshot, faster and safer for later lookups
                 var byId = new Dictionary<long, ProgressBarData>(snapshot.Count);
                 foreach (var pb in snapshot) byId[pb.ID] = pb;
 
-                // 4) 准备一个“下一帧”的新列表，最后一次性替换
+                // 4) Prepare a "next frame" new list, replace all at once at the end
                 var next = new List<ProgressBarData>(present.Count);
 
                 for (int i = 0; i < ordered.Count; i++)
@@ -598,7 +598,7 @@ namespace StarResonanceDpsAnalysis.Forms
 
                     var color = colorMap.TryGetValue(colorKey, out var c) ? c : ColorTranslator.FromHtml("#67AEF6");
 
-                    // 渲染行内容：DictList 也只在锁内改
+                    // Render row content: DictList also only modified within lock
                     if (!DictList.TryGetValue(p.Uid, out var row))
                     {
                         row = [
@@ -612,7 +612,7 @@ namespace StarResonanceDpsAnalysis.Forms
 
                     string share = $"{Math.Round(p.Total / teamSum * 100d, 0, MidpointRounding.AwayFromZero)}%";
                     row[0].Image = profBmp;
-                    // 只要子流派；没有子流派就用战力；否则只显示昵称
+                    // Only sub-profession; if no sub-profession use combat power; otherwise only show nickname
                     string sp = Common.GetTranslatedSubProfession(p.SubProfession);
 
                     row[1].Text = $"{p.Nickname}-{sp}({p.CombatPower})"; //TODO come back here, update subprofession when changing language
@@ -627,7 +627,7 @@ namespace StarResonanceDpsAnalysis.Forms
                         label2.Text = $"{totalFmt} ({perSec})";
                     }
 
-                    // 复用旧的 ProgressBarData，避免 UI 抖动；没有则新建
+                    // Reuse old ProgressBarData to avoid UI jitter; create new if none exists
                     if (!byId.TryGetValue(p.Uid, out var pb))
                     {
                         pb = new ProgressBarData
@@ -641,7 +641,7 @@ namespace StarResonanceDpsAnalysis.Forms
                     }
                     else
                     {
-                        pb.ContentList = row;      // 保底同步
+                        pb.ContentList = row;      // Fallback sync
                         pb.ProgressBarValue = ratio;
                         pb.ProgressBarColor = color;
                     }
@@ -649,39 +649,39 @@ namespace StarResonanceDpsAnalysis.Forms
                     next.Add(pb);
                 }
 
-                // 5) 处理 DictList 的删除（可选，保持干净）
+                // 5) Handle DictList deletion (optional, keep clean)
                 if (toRemove.Count > 0)
                 {
                     foreach (var uid in toRemove)
                         DictList.Remove(uid);
                 }
 
-                // 6) 一次性替换 list，避免“枚举中修改”
+                // 6) Replace list all at once to avoid "modification during enumeration"
                 list = next;
 
-                // RefreshDpsTable(...) — 锁内最终绑定
+                // RefreshDpsTable(...) — final binding within lock
                 void Bind()
                 {
-                    sortedProgressBarList1.Data = list; // list 永不为 null
+                    sortedProgressBarList1.Data = list; // list is never null
                 }
 
                 if (sortedProgressBarList1.InvokeRequired) sortedProgressBarList1.BeginInvoke((Action)Bind);
                 else Bind();
             }
         }
-        #region NPC承伤以及玩家对指定NPC造成的伤害排名
-        #region 全程
-        /// <summary>刷新：NPC承伤总览（全程 FullRecord）</summary>
+        #region NPC damage taken and player damage ranking against specific NPCs
+        #region Full record
+        /// <summary>Refresh: NPC damage taken overview (full record FullRecord)</summary>
         public void RefreshNpcOverview()
         {
             if (Interlocked.CompareExchange(ref _isClearing, 0, 0) == 1) return;
 
-            // 1) 依据当前视图构建 NPC 行
+            // 1) Build NPC rows based on current view
             var uiList = FormManager.showTotal
                 ? BuildNpcOverviewRows_FullRecord()
                 : BuildNpcOverviewRows_Current();
 
-            // 2) 空列表则清空 UI
+            // 2) Clear UI if empty list
             if (uiList.Count == 0)
             {
                 if (sortedProgressBarList1.InvokeRequired)
@@ -691,7 +691,7 @@ namespace StarResonanceDpsAnalysis.Forms
                 return;
             }
 
-            // 3) 渲染（与原全程逻辑一致）
+            // 3) Render (consistent with original full record logic)
             var ordered = uiList.OrderByDescending(x => x.TotalTaken).ToList();
             double teamSum = uiList.Sum(x => (double)x.TotalTaken);
             if (teamSum <= 0d) teamSum = 1d;
@@ -721,7 +721,7 @@ namespace StarResonanceDpsAnalysis.Forms
                     string perSec = Common.FormatWithEnglishUnits(Math.Round(p.TakenPerSec, 1));
                     string share = $"{Math.Round(p.TotalTaken / teamSum * 100d, 0, MidpointRounding.AwayFromZero)}%";
 
-                    // 头像&颜色（沿用“未知”）
+                    // Avatar & color (use "unknown")
                     var profBmp = imgDict.TryGetValue(Properties.Strings.Profession_Unknown, out var bmp) ? bmp : EmptyBitmap();
                     var colorMap = Config.IsLight ? colorDict : blackColorDict;
                     var color = colorMap.TryGetValue(Properties.Strings.Profession_Unknown, out var c) ? c : ColorTranslator.FromHtml("#67AEF6");
@@ -775,7 +775,7 @@ namespace StarResonanceDpsAnalysis.Forms
         }
 
 
-        /// <summary>刷新：某个NPC的攻击者排名（全程 FullRecord）</summary>
+        /// <summary>Refresh: attacker ranking for a specific NPC (full record FullRecord)</summary>
         public void RefreshNpcAttackers(ulong npcId)
         {
             if (Interlocked.CompareExchange(ref _isClearing, 0, 0) == 1) return;
@@ -875,11 +875,11 @@ namespace StarResonanceDpsAnalysis.Forms
         }
 
         #endregion
-        #region 单场
-        /// <summary>构建：NPC承伤总览（当前 Current）</summary>
+        #region Single battle
+        /// <summary>Build: NPC damage taken overview (current Current)</summary>
         private List<NpcRow> BuildNpcOverviewRows_Current()
         {
-            // 先驱动一次实时窗口更新（有就更顺滑；没有也无妨）
+            // First drive one real-time window update (smoother if available; no harm if not)
             StatisticData._npcManager.UpdateAllRealtime();
 
             var ids = StatisticData._npcManager.GetAllNpcIds();
@@ -892,7 +892,7 @@ namespace StarResonanceDpsAnalysis.Forms
                 var ov = StatisticData._npcManager.GetNpcOverview(id);
                 if (ov.TotalTaken == 0) continue;
 
-                // 承伤PS：采用 Total / ActiveSeconds，更稳定；如果你更喜欢实时窗口，可替换为 ov.RealtimeTaken
+                // Damage taken PS: use Total / ActiveSeconds, more stable; if you prefer real-time window, can replace with ov.RealtimeTaken
                 var perSec = StatisticData._npcManager.GetNpcTakenPerSecond(id);
 
                 list.Add(new NpcRow
@@ -906,20 +906,20 @@ namespace StarResonanceDpsAnalysis.Forms
 
             return list.OrderByDescending(r => r.TotalTaken).ToList();
         }
-        /// <summary>构建：对指定NPC的攻击者排名（当前 Current）</summary>
+        /// <summary>Build: attacker ranking for specified NPC (current Current)</summary>
         private List<NpcAttackerRow> BuildNpcAttackerRows_Current(ulong npcId, int topN = 20)
         {
-            // 先刷新一下实时窗口，保证 Realtime 值与 ActiveSeconds 更贴近当前
+            // First refresh real-time window to ensure Realtime values and ActiveSeconds are closer to current
             StatisticData._npcManager.UpdateAllRealtime();
 
-            // 先用现成的 Top 列表拿“对NPC的总伤害/基础信息/玩家全程DPS”
+            // First use existing Top list to get "total damage to NPC/basic info/player full record DPS"
             var top = StatisticData._npcManager.GetNpcTopAttackers(npcId, topN);
             if (top == null || top.Count == 0) return new();
 
             var rows = new List<NpcAttackerRow>(top.Count);
             foreach (var t in top)
             {
-                // 专属DPS：用玩家对该NPC的 StatisticData（Total / ActiveSeconds）
+                // Exclusive DPS: use player's StatisticData for this NPC (Total / ActiveSeconds)
                 var npcOnlyDps = StatisticData._npcManager.GetPlayerNpcOnlyDps(npcId, t.Uid);
 
                 rows.Add(new NpcAttackerRow
@@ -946,7 +946,7 @@ namespace StarResonanceDpsAnalysis.Forms
 
         private List<UiRow> BuildUiRows(SourceType source, MetricType metric)
         {
-            // # UI 刷新事件：根据数据源构建用于展示的轻量行结构（与底层统计对象解耦）
+            // # UI refresh event: build lightweight row structure for display based on data source (decoupled from underlying statistics objects)
             if (source == SourceType.Current)
             {
                 var statsList = StatisticData._manager.GetPlayersWithCombatData().ToArray();
@@ -1029,13 +1029,13 @@ namespace StarResonanceDpsAnalysis.Forms
             }
         }
 
-        /// <summary>构建：NPC承伤总览（全程 FullRecord）</summary>
+        /// <summary>Build: NPC damage taken overview (full record FullRecord)</summary>
         private List<NpcRow> BuildNpcOverviewRows_FullRecord()
         {
             var snap = FullRecord.TakeSnapshot();
             if (snap.Npcs == null || snap.Npcs.Count == 0) return new();
 
-            // 转为列表并按总承伤降序
+            // Convert to list and sort by total damage taken descending
             var list = snap.Npcs.Values
                 .Select(n => new NpcRow
                 {
@@ -1051,14 +1051,14 @@ namespace StarResonanceDpsAnalysis.Forms
             return list;
         }
 
-        /// <summary>构建：对指定NPC的攻击者排名（全程 FullRecord）</summary>
+        /// <summary>Build: attacker ranking for specified NPC (full record FullRecord)</summary>
         private List<NpcAttackerRow> BuildNpcAttackerRows_FullRecord(ulong npcId, int topN = 20)
         {
             var top = FullRecord.GetNpcTopAttackers(npcId, topN);
             if (top == null || top.Count == 0) return new();
 
 
-            // 将 FullRecord 返回项映射到 UI 行
+            // Map FullRecord returned items to UI rows
             var rows = top.Select(t => new NpcAttackerRow
             {
                 Uid = (long)t.Uid,

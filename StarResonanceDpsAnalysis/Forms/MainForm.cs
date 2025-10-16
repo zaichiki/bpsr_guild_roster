@@ -14,24 +14,24 @@ namespace StarResonanceDpsAnalysis.Forms
     {
 
 
-        #region ========== 构造与启动加载 ==========
+        #region ========== Constructor and Startup Loading ==========
 
         public MainForm()
         {
 
-            InitializeComponent(); // # WinForms 初始化
-            FormGui.SetDefaultGUI(this); // # UI 样式：统一默认外观
+            InitializeComponent(); // # WinForms initialization
+            FormGui.SetDefaultGUI(this); // # UI style: unified default appearance
 
 
             pageHeader_MainHeader.Text = Text = $"{FormManager.APP_NAME} {FormManager.AppVersion}";
             label_NowVersionNumber.Text = FormManager.AppVersion;
 
-            //InitTableColumnsConfigAtFirstRun(); // # 列显隐初始化：首次运行建立列配置
-            //LoadTableColumnVisibilitySettings(); // # 读取列显隐配置
-            //ToggleTableView(); // # 表格视图切换（依配置）
-            //LoadFromEmbeddedSkillConfig(); // # 预装载技能元数据 → SkillBook
+            //InitTableColumnsConfigAtFirstRun(); // # Column visibility initialization: establish column configuration on first run
+            //LoadTableColumnVisibilitySettings(); // # Load column visibility settings
+            //ToggleTableView(); // # Table view toggle (based on configuration)
+            //LoadFromEmbeddedSkillConfig(); // # Pre-load skill metadata → SkillBook
 
-            FormGui.SetColorMode(this, AppConfig.IsLight); // # 主题：主窗体明暗模式
+            FormGui.SetColorMode(this, AppConfig.IsLight); // # Theme: main form light/dark mode
 
             var alimamaFont_Size12Bold = HandledResources.GetHarmonyOS_SansFont(12, FontStyle.Bold);
             var alimamaFont_Size9 = HandledResources.GetHarmonyOS_SansFont(9);
@@ -67,31 +67,31 @@ namespace StarResonanceDpsAnalysis.Forms
         #endregion
 
 
-        #region ========== 启动时设备/表格配置 ==========
+        #region ========== Device/Table Configuration on Startup ==========
 
 
 
         #endregion
 
-        #region ========== 热键/交互事件 ==========
+        #region ========== Hotkeys/Interactive Events ==========
 
-        #region —— 按钮/复选框/下拉事件 —— 
+        #region —— Button/Checkbox/Dropdown Events —— 
         private void button_ThemeSwitch_Click(object sender, EventArgs e)
         {
-            AppConfig.IsLight = !AppConfig.IsLight; // # 状态翻转：明/暗
+            AppConfig.IsLight = !AppConfig.IsLight; // # State toggle: light/dark
 
-            button_ThemeSwitch.Toggle = !AppConfig.IsLight; // # UI同步：按钮切换状态
+            button_ThemeSwitch.Toggle = !AppConfig.IsLight; // # UI sync: button toggle state
 
             FormGui.SetColorMode(this, AppConfig.IsLight);
             FormGui.SetColorMode(FormManager.skillDiary, AppConfig.IsLight);
 
-            FormGui.SetColorMode(FormManager.skillDetailForm, AppConfig.IsLight);//设置窗体颜色
-            FormGui.SetColorMode(FormManager.settingsForm, AppConfig.IsLight);//设置窗体颜色
-            FormGui.SetColorMode(FormManager.dpsStatistics, AppConfig.IsLight);//设置窗体颜色
-            FormGui.SetColorMode(FormManager.rankingsForm, AppConfig.IsLight);//设置窗体颜色
-            FormGui.SetColorMode(FormManager.historicalBattlesForm, AppConfig.IsLight);//设置窗体颜色
+            FormGui.SetColorMode(FormManager.skillDetailForm, AppConfig.IsLight);//Set form color
+            FormGui.SetColorMode(FormManager.settingsForm, AppConfig.IsLight);//Set form color
+            FormGui.SetColorMode(FormManager.dpsStatistics, AppConfig.IsLight);//Set form color
+            FormGui.SetColorMode(FormManager.rankingsForm, AppConfig.IsLight);//Set form color
+            FormGui.SetColorMode(FormManager.historicalBattlesForm, AppConfig.IsLight);//Set form color
 
-            // # 注意：部分窗体可能为 null 或已释放，SetColorMode 内部应做空值与IsDisposed判断方可安全调用
+            // # Note: Some forms may be null or disposed, SetColorMode should handle null and IsDisposed checks internally for safe calling
         }
 
         private void button_AlwaysOnTop_Click(object sender, EventArgs e)
@@ -108,7 +108,7 @@ namespace StarResonanceDpsAnalysis.Forms
         {
             if (FormManager.dpsStatistics == null || FormManager.dpsStatistics.IsDisposed)
             {
-                FormManager.dpsStatistics = new DpsStatisticsForm(); // # 打开团队统计窗体
+                FormManager.dpsStatistics = new DpsStatisticsForm(); // # Open team statistics form
             }
 
             FormManager.dpsStatistics.Show();
@@ -124,11 +124,11 @@ namespace StarResonanceDpsAnalysis.Forms
         #endregion
 
 
-        #region ========== 计时器Tick事件 ==========
+        #region ========== Timer Tick Events ==========
 
         private void timer_RefreshDpsTable_Tick(object sender, EventArgs e)
         {
-            // Task.Run(() => RefreshDpsTable()); // # 性能提示：如需异步刷新表格，这里可放开；当前关闭避免并发更新
+            // Task.Run(() => RefreshDpsTable()); // # Performance tip: if async table refresh is needed, uncomment here; currently disabled to avoid concurrent updates
         }
 
         private void timer_RefreshRunningTime_Tick(object sender, EventArgs e)
@@ -141,21 +141,21 @@ namespace StarResonanceDpsAnalysis.Forms
 
         private void table_DpsDataTable_CellClick(object sender, TableClickEventArgs e)
         {
-            if (e.RowIndex == 0) return; // # 表头点击忽略
+            if (e.RowIndex == 0) return; // # Ignore header clicks
             //ulong uid = 0;
 
             //if (FormManager.skillDetailForm == null || FormManager.skillDetailForm.IsDisposed)
             //{
-            //    FormManager.skillDetailForm = new SkillDetailForm(); // # 详情窗体：延迟创建
+            //    FormManager.skillDetailForm = new SkillDetailForm(); // # Detail form: lazy creation
             //}
-            //SkillTableDatas.SkillTable.Clear(); // # 清空旧详情数据
+            //SkillTableDatas.SkillTable.Clear(); // # Clear old detail data
 
             //FormManager.skillDetailForm.Uid = uid;
-            ////获取玩家信息
-            //var info = StatisticData._manager.GetPlayerBasicInfo(uid); // # 查询玩家基础信息（昵称/战力/职业）
+            ////Get player information
+            //var info = StatisticData._manager.GetPlayerBasicInfo(uid); // # Query player basic info (nickname/combat power/profession)
             //FormManager.skillDetailForm.GetPlayerInfo(info.Nickname, info.CombatPower, info.Profession);
-            //FormManager.skillDetailForm.SelectDataType(); // # 按当前选择的“伤害/治疗/承伤”类型刷新
-            //FormManager.skillDetailForm.Show(); // # 显示详情
+            //FormManager.skillDetailForm.SelectDataType(); // # Refresh based on currently selected "damage/healing/taken damage" type
+            //FormManager.skillDetailForm.Show(); // # Show details
 
         }
 
@@ -165,7 +165,7 @@ namespace StarResonanceDpsAnalysis.Forms
         {
             if (FormManager.rankingsForm == null || FormManager.rankingsForm.IsDisposed)
             {
-                FormManager.rankingsForm = new RankingsForm(); // # 排行窗口：延迟创建
+                FormManager.rankingsForm = new RankingsForm(); // # Rankings window: lazy creation
             }
             FormManager.rankingsForm.Show();
         }

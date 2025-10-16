@@ -168,6 +168,9 @@
   <data name="Menu_DamageReference" xml:space="preserve">
     <value>Damage Reference</value>
   </data>
+  <data name="Menu_GuildRoster" xml:space="preserve">
+    <value>Guild Roster</value>
+  </data>
   <data name="Menu_PilingMode" xml:space="preserve">
     <value>DPS Benchmark</value>
   </data>

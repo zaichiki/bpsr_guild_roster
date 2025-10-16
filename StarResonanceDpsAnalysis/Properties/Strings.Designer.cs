@@ -205,6 +205,15 @@ namespace StarResonanceDpsAnalysis.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to 公会花名册.
+        /// </summary>
+        internal static string Menu_GuildRoster {
+            get {
+                return ResourceManager.GetString("Menu_GuildRoster", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to 死亡统计.
         /// </summary>
         internal static string Menu_DeathStatistics {

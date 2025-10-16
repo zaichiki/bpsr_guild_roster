@@ -39,6 +39,8 @@ namespace StarResonanceDpsAnalysis.Forms
 
         public static ModuleCalculationForm moduleCalculationForm;//模块计算窗体
 
+        public static GuildRosterForm guildRosterForm;//公会花名册窗体
+
         /// <summary>
         /// 统一设置透明度
         /// </summary>

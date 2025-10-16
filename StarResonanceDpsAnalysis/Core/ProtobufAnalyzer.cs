@@ -27,6 +27,16 @@ namespace StarResonanceDpsAnalysis.Core
         /// </summary>
         private static void AnalyzeProtobufFields(byte[] data)
         {
+
+            try
+            {
+                var result = Blueprotobuf.Decode(data);
+                Console.WriteLine(result.Count);
+            } catch (Exception ex)
+            {
+                Console.WriteLine($" Error trying Blueprotobuf.Decode: {ex.Message}");
+            }
+
             Dictionary<int, GuildMemberActivityData> activityData = new Dictionary<int, GuildMemberActivityData>();
             Dictionary<int, GuildMemberData> memberData = new Dictionary<int, GuildMemberData>();
 
@@ -637,14 +647,15 @@ namespace StarResonanceDpsAnalysis.Core
             }
             if(memberData.Count > 0 && activityData.Count > 0)
             {
+                //this means this is the roster data, proceed
                 Console.WriteLine($"Member data count: {memberData.Count}");
                 Console.WriteLine($"Activity data count: {activityData.Count}");
                 
-                // Export combined data to TSV
+                // Update joined guild data and export to TSV
                 try
                 {
-                    string outputPath = GuildRosterExporter.ExportToTsv(memberData, activityData);
-                    Console.WriteLine($"Guild roster exported to: {outputPath}");
+                    GuildRosterExporter.OnRosterProtobufProcessed(memberData, activityData);
+                    Console.WriteLine($"Guild roster OnRosterProtobufProcessed");
                 }
                 catch (Exception ex)
                 {

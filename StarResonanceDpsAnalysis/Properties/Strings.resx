@@ -168,6 +168,9 @@
   <data name="Menu_DamageReference" xml:space="preserve">
     <value>伤害参考</value>
   </data>
+  <data name="Menu_GuildRoster" xml:space="preserve">
+    <value>公会花名册</value>
+  </data>
   <data name="Menu_PilingMode" xml:space="preserve">
     <value>打桩模式</value>
   </data>

@@ -1,17 +1,17 @@
 ﻿using System;
 using System.Drawing;
 using System.Security.Cryptography.Xml;
-using System.Threading.Tasks; // 引用异步任务支持（Task/async/await）
+using System.Threading.Tasks; // Reference async task support (Task/async/await)
 using System.Windows.Forms;
 
-using AntdUI; // 引用 AntdUI 组件库（第三方 UI 控件/样式）
-using StarResonanceDpsAnalysis.Control; // 引用项目内的 UI 控制/辅助类命名空间
+using AntdUI; // Reference AntdUI component library (third-party UI controls/styles)
+using StarResonanceDpsAnalysis.Control; // Reference project internal UI control/helper class namespace
 using StarResonanceDpsAnalysis.Effects;
-using StarResonanceDpsAnalysis.Forms.PopUp; // 引用弹窗相关窗体/组件命名空间
-using StarResonanceDpsAnalysis.Plugin; // 引用项目插件层通用命名空间
-using StarResonanceDpsAnalysis.Plugin.DamageStatistics; // 引用伤害统计插件命名空间（含 FullRecord、StatisticData 等）
-using StarResonanceDpsAnalysis.Plugin.LaunchFunction; // 引用启动相关功能（加载技能配置等）
-using StarResonanceDpsAnalysis.Properties; // 引用资源（图标/本地化字符串等）
+using StarResonanceDpsAnalysis.Forms.PopUp; // Reference popup related form/component namespace
+using StarResonanceDpsAnalysis.Plugin; // Reference project plugin layer common namespace
+using StarResonanceDpsAnalysis.Plugin.DamageStatistics; // Reference damage statistics plugin namespace (includes FullRecord, StatisticData, etc.)
+using StarResonanceDpsAnalysis.Plugin.LaunchFunction; // Reference startup related functionality (loading skill configurations, etc.)
+using StarResonanceDpsAnalysis.Properties; // Reference resources (icons/localized strings, etc.)
 
 using static StarResonanceDpsAnalysis.Control.SkillDetailForm;
 using System.Security.Cryptography.Xml;
@@ -20,118 +20,118 @@ using DocumentFormat.OpenXml.Office2010.Excel;
 using Color = System.Drawing.Color;
 using StarResonanceDpsAnalysis.Forms.ModuleForm;
 
-namespace StarResonanceDpsAnalysis.Forms // 定义命名空间：窗体相关代码所在位置
-{ // 命名空间开始
-    public partial class DpsStatisticsForm : BorderlessForm // 定义无边框窗体的局部类（与 Designer 生成的部分合并）
-    { // 类开始
-        // # 导航
-        // # 本文件职责：
-        // #   1) 窗体构造与启动流程（初始化 UI/钩子/配置/设备/技能配置）。
-        // #   2) 列表交互（选择条目 → 打开技能详情窗口）。
-        // #   3) 顶部操作（置顶、设置菜单、提示气泡）。
-        // #   4) 统计视图切换（单次/全程 + 左右切换指标）。
-        // #   5) 定时刷新（战斗时长、榜单数据刷新）。
-        // #   6) 清空/打桩模式（定时器与上传流程）。
-        // #   7) 主题切换（前景色变化时的控件背景适配）。
-        // #   8) 全局热键钩子（安装/卸载/按键路由）。
-        // #   9) 窗口控制（鼠标穿透、透明度切换）。
+namespace StarResonanceDpsAnalysis.Forms // Define namespace: location of form-related code
+{ // Namespace start
+    public partial class DpsStatisticsForm : BorderlessForm // Define partial class for borderless form (merged with Designer generated part)
+    { // Class start
+        // # Navigation
+        // # This file responsibilities:
+        // #   1) Form construction and startup flow (initialize UI/hooks/config/devices/skill config).
+        // #   2) List interaction (select item → open skill detail window).
+        // #   3) Top operations (always on top, settings menu, tooltips).
+        // #   4) Statistics view switching (single/full record + left/right switch metrics).
+        // #   5) Timed refresh (battle duration, leaderboard data refresh).
+        // #   6) Clear/piling mode (timer and upload flow).
+        // #   7) Theme switching (control background adaptation when foreground color changes).
+        // #   8) Global hotkey hooks (install/uninstall/key routing).
+        // #   9) Window control (mouse penetration, transparency switching).
 
-        // # 构造与启动流程
-        public DpsStatisticsForm() // 构造函数：创建窗体实例时执行一次
+        // # Construction and startup flow
+        public DpsStatisticsForm() // Constructor: executed once when creating form instance
         {
-            // 构造函数开始
-            InitializeComponent(); // 初始化设计器生成的控件与布局
+            // Constructor start
+            InitializeComponent(); // Initialize designer generated controls and layout
 
 
             Text = FormManager.APP_NAME;
 
-            FormGui.SetDefaultGUI(this); // 统一设置窗体默认 GUI 风格（字体、间距、阴影等）
+            FormGui.SetDefaultGUI(this); // Uniformly set form default GUI style (font, spacing, shadows, etc.)
 
-            //ApplyResolutionScale(); // 可选：根据屏幕分辨率对整体界面进行缩放（当前禁用，仅保留调用）
+            //ApplyResolutionScale(); // Optional: scale entire interface based on screen resolution (currently disabled, only call preserved)
 
-            // 从资源文件设置字体
+            // Set font from resource file
             SetDefaultFontFromResources();
 
-            // 加载钩子
-            RegisterKeyboardHook(); // 安装键盘钩子，用于全局热键监听与处理
+            // Load hooks
+            RegisterKeyboardHook(); // Install keyboard hook for global hotkey monitoring and handling
 
-            // 首次启动时初始化基础配置
-            InitTableColumnsConfigAtFirstRun(); // 首次运行初始化表格列配置（列宽/显示项等）
+            // Initialize basic configuration on first startup
+            InitTableColumnsConfigAtFirstRun(); // Initialize table column configuration on first run (column width/display items, etc.)
 
-            // 加载网卡
-            LoadNetworkDevices(); // 加载/枚举网络设备（抓包设备列表）
+            // Load network cards
+            LoadNetworkDevices(); // Load/enumerate network devices (packet capture device list)
 
-            FormGui.SetColorMode(this, AppConfig.IsLight);//设置窗体颜色 // 根据配置设置窗体的颜色主题（明亮/深色）
+            FormGui.SetColorMode(this, AppConfig.IsLight);//Set form color // Set form color theme based on configuration (light/dark)
 
-            // 加载技能配置
-            StartupInitializer.LoadFromEmbeddedSkillConfig(); // 从内置资源读取并加载技能数据（元数据/图标/映射）
+            // Load skill configuration
+            StartupInitializer.LoadFromEmbeddedSkillConfig(); // Read and load skill data from embedded resources (metadata/icons/mapping)
 
 
-            sortedProgressBarList1.SelectionChanged += (s, i, d) => // 订阅进度条列表的选择变化事件（点击条目）
-            { // 事件处理开始
-                // # UI 列表交互：当用户点击列表项时触发（i 为索引，d 为 ProgressBarData）
-                if (i < 0 || d == null) // 若未选中有效项或数据为空
-                { // 条件分支开始
-                    return; // 直接返回，不做任何处理
-                } // 条件分支结束
-                  // # 将选中项的 UID 传入详情窗口刷新
-                sortedProgressBarList_SelectionChanged((ulong)d.ID); // 将条目 ID 转为 UID 并调用详情刷新逻辑
-            }; // 事件处理结束并解除与下一语句的关联
+            sortedProgressBarList1.SelectionChanged += (s, i, d) => // Subscribe to progress bar list selection change event (click item)
+            { // Event handling start
+                // # UI list interaction: triggered when user clicks list item (i is index, d is ProgressBarData)
+                if (i < 0 || d == null) // If no valid item selected or data is null
+                { // Conditional branch start
+                    return; // Return directly without any processing
+                } // Conditional branch end
+                  // # Pass selected item UID to detail window for refresh
+                sortedProgressBarList_SelectionChanged((ulong)d.ID); // Convert item ID to UID and call detail refresh logic
+            }; // Event handling end and disassociate from next statement
 
-            SetStyle(); // 设置/应用本窗体的个性化样式（定义在同类/局部类的其他部分）
+            SetStyle(); // Set/apply personalized style for this form (defined in other parts of same class/partial class)
             ApplyLocalization();
-        } // 构造函数结束
+        } // Constructor end
 
 
-        // # 屏幕分辨率缩放判定
-        private static float GetPrimaryResolutionScale() // 依据主屏高度返回推荐缩放比例
+        // # Screen resolution scaling determination
+        private static float GetPrimaryResolutionScale() // Return recommended scaling ratio based on primary screen height
         {
-            try // 防御：获取屏幕信息可能在某些环境异常
-            { // try 开始
-                var bounds = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 1920, 1080); // 获取主屏尺寸，失败则默认 1080p
-                if (bounds.Height >= 2160) return 2.0f;       // 4K 屏：建议缩放 2.0
-                if (bounds.Height >= 1440) return 1.3333f;    // 2K 屏：建议缩放 1.3333
-                return 1.0f;                                   // 1080p：不缩放
-            } // try 结束
-            catch // 捕获任何异常
-            { // catch 开始
-                return 1.0f; // 异常时安全返回 1.0（不缩放）
-            } // catch 结束
+            try // Defense: getting screen info may be abnormal in some environments
+            { // try start
+                var bounds = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 1920, 1080); // Get primary screen size, default to 1080p if failed
+                if (bounds.Height >= 2160) return 2.0f;       // 4K screen: recommend scaling 2.0
+                if (bounds.Height >= 1440) return 1.3333f;    // 2K screen: recommend scaling 1.3333
+                return 1.0f;                                   // 1080p: no scaling
+            } // try end
+            catch // Catch any exception
+            { // catch start
+                return 1.0f; // Safely return 1.0 on exception (no scaling)
+            } // catch end
         }
 
-        // # 窗体加载事件：启动抓包
-        private void DpsStatistics_Load(object sender, EventArgs e) // 窗体 Load 事件处理
+        // # Form load event: start packet capture
+        private void DpsStatistics_Load(object sender, EventArgs e) // Form Load event handler
         {
-            //开启默认置顶
+            //Enable default always on top
 
-            StartCapture(); // 启动网络抓包/数据采集（核心运行入口之一）
+            StartCapture(); // Start network packet capture/data collection (one of core runtime entry points)
 
-            // 重置为上次关闭前的位置与大小
+            // Reset to position and size before last close
             SetStartupPositionAndSize();
 
             EnsureTopMost();
         }
 
-        // # 列表选择变更 → 打开技能详情
-        private void sortedProgressBarList_SelectionChanged(ulong uid) // 列表项选择回调：传入选中玩家 UID
+        // # List selection change → open skill details
+        private void sortedProgressBarList_SelectionChanged(ulong uid) // List item selection callback: pass selected player UID
         {
-            // 如果当前是“NPC承伤”视图：点击 NPC 行切换到“打这个NPC的玩家排名”
+            // If currently in "NPC damage taken" view: click NPC row to switch to "players ranking attacking this NPC"
             if (FormManager.currentIndex == 3)
             {
-                // 全程显示：直接刷新为该NPC的攻击者榜
+                // Full record display: directly refresh to this NPC's attacker leaderboard
                 _npcDetailMode = true;
                 _npcFocusId = uid;
 
-                // 立刻刷新该 NPC 的攻击者榜（当前/全程均已在方法内部自动分流）
+                // Immediately refresh this NPC's attacker leaderboard (current/full record already automatically separated within method)
                 RefreshNpcAttackers(_npcFocusId);
-                // 可选：更新标题
+                // Optional: update title
                 pageHeader1.SubText = FormManager.showTotal
                     ? string.Format(Properties.Strings.Header_NpcAttackers_FullRecord, uid)
                     : string.Format(Properties.Strings.Header_NpcAttackers_Current, uid);
                 return;
             }
 
-            // ……下面是你原来的玩家技能详情逻辑……
+            // ...Below is your original player skill detail logic...
             if (FormManager.skillDetailForm == null || FormManager.skillDetailForm.IsDisposed)
                 FormManager.skillDetailForm = new SkillDetailForm();
 
@@ -148,20 +148,20 @@ namespace StarResonanceDpsAnalysis.Forms // 定义命名空间：窗体相关代
             if (!FormManager.skillDetailForm.Visible) FormManager.skillDetailForm.Show(); else FormManager.skillDetailForm.Activate();
         }
 
-        // # 顶部：置顶窗口按钮
-        private void button_AlwaysOnTop_Click(object sender, EventArgs e) // 置顶按钮点击事件
+        // # Top: always on top window button
+        private void button_AlwaysOnTop_Click(object sender, EventArgs e) // Always on top button click event
         {
-            TopMost = !TopMost; // 简化切换
+            TopMost = !TopMost; // Simplified toggle
             FormManager.skillDetailForm.TopMost = TopMost;
 
-            button_AlwaysOnTop.Toggle = TopMost; // 同步按钮的视觉状态
+            button_AlwaysOnTop.Toggle = TopMost; // Synchronize button visual state
         }
 
-        #region 切换显示类型（支持单次/全程伤害） // 折叠：视图标签与切换逻辑
+        #region Switch display type (supports single/full record damage) // Collapse: view labels and switching logic
 
 
-        // # 头部标题文本刷新：依据 showTotal & currentIndex
-        private void UpdateHeaderText() // 根据当前模式与索引更新顶部标签文本
+        // # Header title text refresh: based on showTotal & currentIndex
+        private void UpdateHeaderText() // Update top label text based on current mode and index
         {
 
             if (FormManager.showTotal)
@@ -188,31 +188,31 @@ namespace StarResonanceDpsAnalysis.Forms // 定义命名空间：窗体相关代
 
 
 
-        // 单次/全程切换
-        private void button3_Click(object sender, EventArgs e) // 单次/全程切换按钮事件
+        // Single/full record toggle
+        private void button3_Click(object sender, EventArgs e) // Single/full record toggle button event
         {
-            FormManager.showTotal = !FormManager.showTotal; // 取反：在单次与全程之间切换
-            UpdateHeaderText(); // 切换后刷新顶部文本
+            FormManager.showTotal = !FormManager.showTotal; // Invert: toggle between single and full record
+            UpdateHeaderText(); // Refresh top text after toggle
         }
         #endregion
 
-        // # 定时刷新：战斗时长显示 + 榜单刷新
-        private void timer_RefreshRunningTime_Tick(object sender, EventArgs e) // 定时器：周期刷新（UI 绑定）
+        // # Timed refresh: battle duration display + leaderboard refresh
+        private void timer_RefreshRunningTime_Tick(object sender, EventArgs e) // Timer: periodic refresh (UI bound)
         {
             if (FormManager.currentIndex == 3)
             {
-                // NPC 承伤页
+                // NPC damage taken page
                 if (_npcDetailMode && _npcFocusId != 0)
                 {
-                    // 正在查看某个 NPC 的攻击者榜 —— 保持停留在详情页并刷新该榜单
+                    // Currently viewing some NPC's attacker leaderboard —— stay on detail page and refresh that leaderboard
                     RefreshNpcAttackers((ulong)_npcFocusId);
 
-                    // （可选健壮性）该 NPC 若已消失/无数据，可自动退出详情回到总览
-                    // 你可以在 RefreshNpcAttackers 内部判空时自动调用 ExitNpcDetailMode() + RefreshNpcOverview()
+                    // (Optional robustness) If this NPC has disappeared/no data, can automatically exit detail and return to overview
+                    // You can automatically call ExitNpcDetailMode() + RefreshNpcOverview() when checking for null inside RefreshNpcAttackers
                 }
                 else
                 {
-                    // 非详情模式：刷新 NPC 承伤总览（当前/全程在方法内部已自行处理）
+                    // Non-detail mode: refresh NPC damage taken overview (current/full record already handled internally by method)
                     RefreshNpcOverview();
                 }
             }
@@ -223,7 +223,7 @@ namespace StarResonanceDpsAnalysis.Forms // 定义命名空间：窗体相关代
                 {
                     1 => MetricType.Healing,
                     2 => MetricType.Taken,
-                    3 => MetricType.NpcTaken,   // ★ 保留：其他地方如果有用到
+                    3 => MetricType.NpcTaken,   // ★ Reserved: if used elsewhere
                     _ => MetricType.Damage
                 };
                 RefreshDpsTable(source, metric);
@@ -236,49 +236,50 @@ namespace StarResonanceDpsAnalysis.Forms // 定义命名空间：窗体相关代
 
 
         /// <summary>
-        /// 清空当前数据数据
+        /// Clear current data
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void button1_Click(object sender, EventArgs e) // 清空按钮点击：触发清空逻辑
+        private void button1_Click(object sender, EventArgs e) // Clear button click: trigger clear logic
         {
-            // # 清空：触发 HandleClearData（停止图表刷新→清空数据→重置图表）
-            HandleClearData(); // 调用清空处理
+            // # Clear: trigger HandleClearData (stop chart refresh→clear data→reset chart)
+            HandleClearData(); // Call clear handling
         }
 
 
-        // # 设置按钮 → 右键菜单
-        private void button_Settings_Click(object sender, EventArgs e) // 设置按钮点击：弹出右键菜单
+        // # Settings button → right-click menu
+        private void button_Settings_Click(object sender, EventArgs e) // Settings button click: popup right-click menu
         {
 
 
-            var menulist = new IContextMenuStripItem[] // 构建右键菜单项数组
-             { // 数组开始
-                    new ContextMenuStripItem(Properties.Strings.Menu_HistoricalBattles) // 一级菜单：历史战斗
-                    { // 配置开始
-                        IconSvg = Resources.historicalRecords, // 图标
-                    }, // 一级菜单配置结束
-                    new ContextMenuStripItem(Properties.Strings.Menu_Settings){ IconSvg = Resources.set_up}, // 一级菜单：基础设置
-                    new ContextMenuStripItem(Properties.Strings.Menu_MainForm){ IconSvg = Resources.HomeIcon, }, // 一级菜单：主窗体
-                    new ContextMenuStripItem(Properties.Strings.Menu_ModuleConfig){ IconSvg= Resources.moduleIcon }, // 一级菜单：数据显示设置
-                    //new ContextMenuStripItem("技能循环监测"), // 一级菜单：技能循环监测
-                    //new ContextMenuStripItem(""){ IconSvg = Resources.userUid, }, // 示例：用户 UID（暂不用）
-                    new ContextMenuStripItem(Properties.Strings.Menu_DeathStatistics){ IconSvg = Resources.exclude, }, // 一级菜单：统计排除
+            var menulist = new IContextMenuStripItem[] // Build right-click menu item array
+             { // Array start
+                    new ContextMenuStripItem(Properties.Strings.Menu_HistoricalBattles) // First level menu: historical battles
+                    { // Configuration start
+                        IconSvg = Resources.historicalRecords, // Icon
+                    }, // First level menu configuration end
+                    new ContextMenuStripItem(Properties.Strings.Menu_Settings){ IconSvg = Resources.set_up}, // First level menu: basic settings
+                    new ContextMenuStripItem(Properties.Strings.Menu_MainForm){ IconSvg = Resources.HomeIcon, }, // First level menu: main form
+                    new ContextMenuStripItem(Properties.Strings.Menu_ModuleConfig){ IconSvg= Resources.moduleIcon }, // First level menu: data display settings
+                    //new ContextMenuStripItem("技能循环监测"), // First level menu: skill rotation monitoring
+                    //new ContextMenuStripItem(""){ IconSvg = Resources.userUid, }, // Example: user UID (not used for now)
+                    new ContextMenuStripItem(Properties.Strings.Menu_DeathStatistics){ IconSvg = Resources.exclude, }, // First level menu: statistics exclusion
                     new ContextMenuStripItem(Properties.Strings.Menu_SkillDiary){ IconSvg = Resources.diaryIcon, },
                     new ContextMenuStripItem(Properties.Strings.Menu_DamageReference){ IconSvg = Resources.reference, },
-                    new ContextMenuStripItem(Properties.Strings.Menu_PilingMode){ IconSvg = Resources.Stakes }, // 一级菜单：打桩模式
-                    new ContextMenuStripItem(Properties.Strings.Menu_Exit){ IconSvg = Resources.quit, }, // 一级菜单：退出
-             } // 数组结束
-            ; // 语句结束（分号保持）
+                    new ContextMenuStripItem(Properties.Strings.Menu_GuildRoster){ IconSvg = Resources.userUid, }, // First level menu: guild roster
+                    new ContextMenuStripItem(Properties.Strings.Menu_PilingMode){ IconSvg = Resources.Stakes }, // First level menu: piling mode
+                    new ContextMenuStripItem(Properties.Strings.Menu_Exit){ IconSvg = Resources.quit, }, // First level menu: exit
+             } // Array end
+            ; // Statement end (semicolon preserved)
 
-            AntdUI.ContextMenuStrip.open(this, it => // 打开右键菜单并处理点击回调（it 为被点击项）
+            AntdUI.ContextMenuStrip.open(this, it => // Open right-click menu and handle click callback (it is the clicked item)
             {
 
 
 
-                // 回调开始
-                // # 菜单点击回调：根据 Text 执行对应动作
-                switch (it.Text) // 分支根据菜单文本
+                // Callback start
+                // # Menu click callback: execute corresponding action based on Text
+                switch (it.Text) // Branch based on menu text
                 {
                     case var s when s == Properties.Strings.Menu_HistoricalBattles:
                         if (FormManager.historicalBattlesForm == null || FormManager.historicalBattlesForm.IsDisposed)
@@ -287,23 +288,23 @@ namespace StarResonanceDpsAnalysis.Forms // 定义命名空间：窗体相关代
                         }
                         FormManager.historicalBattlesForm.Show();
                         break;
-                    // switch 开始
-                    case var s when s == Properties.Strings.Menu_Settings: // 点击“基础设置”
-                        OpenSettingsDialog(); // 打开设置面板
-                        break; // 跳出 switch
-                    case var s when s == Properties.Strings.Menu_MainForm: // 点击“主窗体”
-                        if (FormManager.mainForm == null || FormManager.mainForm.IsDisposed) // 若主窗体不存在或已释放
+                    // switch start
+                    case var s when s == Properties.Strings.Menu_Settings: // Click "Basic Settings"
+                        OpenSettingsDialog(); // Open settings panel
+                        break; // Break out of switch
+                    case var s when s == Properties.Strings.Menu_MainForm: // Click "Main Form"
+                        if (FormManager.mainForm == null || FormManager.mainForm.IsDisposed) // If main form doesn't exist or is disposed
                         {
-                            FormManager.mainForm = new MainForm(); // 创建主窗体
+                            FormManager.mainForm = new MainForm(); // Create main form
                         }
-                        FormManager.mainForm.Show(); // 显示主窗体
-                        break; // 跳出 switch
+                        FormManager.mainForm.Show(); // Show main form
+                        break; // Break out of switch
                     case var s when s == Properties.Strings.Menu_ModuleConfig:
-                        if (FormManager.moduleCalculationForm == null || FormManager.moduleCalculationForm.IsDisposed) // 若主窗体不存在或已释放
+                        if (FormManager.moduleCalculationForm == null || FormManager.moduleCalculationForm.IsDisposed) // If main form doesn't exist or is disposed
                         {
-                            FormManager.moduleCalculationForm = new ModuleCalculationForm(); // 创建主窗体
+                            FormManager.moduleCalculationForm = new ModuleCalculationForm(); // Create main form
                         }
-                        FormManager.moduleCalculationForm.Show(); // 显示主窗体
+                        FormManager.moduleCalculationForm.Show(); // Show main form
                         break;
 
                     case var s when s == Properties.Strings.Menu_DeathStatistics:
@@ -320,76 +321,85 @@ namespace StarResonanceDpsAnalysis.Forms // 定义命名空间：窗体相关代
                         }
                         FormManager.skillDiary.Show();
                         break;
-                    case "技能循环监测": // 点击“技能循环监测”
-                        if (FormManager.skillRotationMonitorForm == null || FormManager.skillRotationMonitorForm.IsDisposed) // 若监测窗体不存在或已释放
+                    case "技能循环监测": // Click "Skill Rotation Monitoring"
+                        if (FormManager.skillRotationMonitorForm == null || FormManager.skillRotationMonitorForm.IsDisposed) // If monitoring form doesn't exist or is disposed
                         {
-                            FormManager.skillRotationMonitorForm = new SkillRotationMonitorForm(); // 创建窗口
+                            FormManager.skillRotationMonitorForm = new SkillRotationMonitorForm(); // Create window
                         }
-                        FormManager.skillRotationMonitorForm.Show(); // 显示窗口
-                        //FormGui.SetColorMode(FormManager.skillRotationMonitorForm, AppConfig.IsLight); // 同步主题（明/暗）
-                        break; // 跳出 switch
-                    case "数据显示设置": // 点击“数据显示设置”（当前仅保留占位）
+                        FormManager.skillRotationMonitorForm.Show(); // Show window
+                        //FormGui.SetColorMode(FormManager.skillRotationMonitorForm, AppConfig.IsLight); // Synchronize theme (light/dark)
+                        break; // Break out of switch
+                    case "数据显示设置": // Click "Data Display Settings" (currently only placeholder preserved)
                         //dataDisplay(); 
-                        break; // 占位：后续实现
+                        break; // Placeholder: to be implemented later
                     case var s when s == Properties.Strings.Menu_DamageReference:
-                        if (FormManager.rankingsForm == null || FormManager.rankingsForm.IsDisposed) // 若监测窗体不存在或已释放
+                        if (FormManager.rankingsForm == null || FormManager.rankingsForm.IsDisposed) // If monitoring form doesn't exist or is disposed
                         {
-                            FormManager.rankingsForm = new RankingsForm(); // 创建窗口
+                            FormManager.rankingsForm = new RankingsForm(); // Create window
                         }
-                        FormManager.rankingsForm.Show(); // 显示窗口
+                        FormManager.rankingsForm.Show(); // Show window
                         break;
-                    case "统计排除": // 点击“统计排除”
-                        break; // 占位：后续实现
-                    case var s when s == Properties.Strings.Menu_PilingMode: // 点击“打桩模式”
+                    case var s when s == Properties.Strings.Menu_GuildRoster: // Click "Guild Roster"
+                        if (FormManager.guildRosterForm == null || FormManager.guildRosterForm.IsDisposed) // If guild roster form doesn't exist or is disposed
+                        {
+                            FormManager.guildRosterForm = new GuildRosterForm(); // Create window
+                        }
+                        FormManager.guildRosterForm.Show(); // Show window
+                        FormManager.guildRosterForm.BringToFront(); // Bring window to front
+                        FormManager.guildRosterForm.Activate(); // Activate window (give it focus)
+                        break;
+                    case "统计排除": // Click "Statistics Exclusion"
+                        break; // Placeholder: to be implemented later
+                    case var s when s == Properties.Strings.Menu_PilingMode: // Click "Piling Mode"
                         PilingModeCheckbox.Visible = !PilingModeCheckbox.Visible;
-                        break; // 跳出 switch
-                    case var s when s == Properties.Strings.Menu_Exit: // 点击“退出”
-                        System.Windows.Forms.Application.Exit(); // 结束应用程序
-                        break; // 跳出 switch
-                } // switch 结束
-            }, menulist); // 打开菜单并传入菜单项
+                        break; // Break out of switch
+                    case var s when s == Properties.Strings.Menu_Exit: // Click "Exit"
+                        System.Windows.Forms.Application.Exit(); // Terminate application
+                        break; // Break out of switch
+                } // switch end
+            }, menulist); // Open menu and pass menu items
         }
 
         /// <summary>
-        /// 打开基础设置面板
+        /// Open basic settings panel
         /// </summary>
-        private void OpenSettingsDialog() // 打开基础设置窗体
+        private void OpenSettingsDialog() // Open basic settings form
         {
-            if (FormManager.settingsForm == null || FormManager.settingsForm.IsDisposed) // 若设置窗体不存在或已释放
+            if (FormManager.settingsForm == null || FormManager.settingsForm.IsDisposed) // If settings form doesn't exist or is disposed
             {
-                FormManager.settingsForm = new SettingsForm(); // 创建设置窗体
+                FormManager.settingsForm = new SettingsForm(); // Create settings form
             }
-            FormManager.settingsForm.Show(); // 显示设置窗体（或置顶）
+            FormManager.settingsForm.Show(); // Show settings form (or bring to front)
 
         }
 
-        // # 按钮提示气泡（置顶）
-        private void button_AlwaysOnTop_MouseEnter(object sender, EventArgs e) // 鼠标进入置顶按钮时显示提示
+        // # Button tooltip (always on top)
+        private void button_AlwaysOnTop_MouseEnter(object sender, EventArgs e) // Show tooltip when mouse enters always on top button
         {
-            ToolTip(button_AlwaysOnTop, Properties.Strings.Tooltip_AlwaysOnTop); // 显示“置顶窗口”的气泡提示
+            ToolTip(button_AlwaysOnTop, Properties.Strings.Tooltip_AlwaysOnTop); // Show "Always on top window" bubble tooltip
         }
 
-        // # 通用提示气泡工具
+        // # General tooltip utility
 
-        private void ToolTip(System.Windows.Forms.Control control, string text) // 通用封装：在指定控件上显示提示文本
+        private void ToolTip(System.Windows.Forms.Control control, string text) // General wrapper: display tooltip text on specified control
         {
-            tooltip.SetTip(control, text); // 在目标控件上显示指定文本提示
+            tooltip.SetTip(control, text); // Display specified text tooltip on target control
         }
 
-        // # 按钮提示气泡（清空）
-        private void button1_MouseEnter(object sender, EventArgs e) // 鼠标进入“清空”按钮时显示提示
+        // # Button tooltip (clear)
+        private void button1_MouseEnter(object sender, EventArgs e) // Show tooltip when mouse enters "Clear" button
         {
-            ToolTip(button1, Properties.Strings.Tooltip_ClearData); // 显示“清空当前数据”的气泡提示
+            ToolTip(button1, Properties.Strings.Tooltip_ClearData); // Show "Clear current data" bubble tooltip
         }
         private void button2_MouseEnter(object sender, EventArgs e)
         {
             ToolTip(button2, Properties.Strings.Tooltip_Minimize);
         }
 
-        // # 按钮提示气泡（单次/全程切换）
-        private void button3_MouseEnter(object sender, EventArgs e) // 鼠标进入“单次/全程切换”按钮时显示提示
+        // # Button tooltip (single/full record toggle)
+        private void button3_MouseEnter(object sender, EventArgs e) // Show tooltip when mouse enters "Single/Full record toggle" button
         {
-            ToolTip(button3, Properties.Strings.Tooltip_SwitchSingleTotal); // 显示切换提示（原文如此，保留）
+            ToolTip(button3, Properties.Strings.Tooltip_SwitchSingleTotal); // Show toggle tooltip (as original, preserved)
         }
 
         private void button_ThemeSwitch_MouseEnter(object sender, EventArgs e)
@@ -397,7 +407,7 @@ namespace StarResonanceDpsAnalysis.Forms // 定义命名空间：窗体相关代
             ToolTip(button_ThemeSwitch, Properties.Strings.Tooltip_SwitchTheme);
         }
 
-        // 打桩模式定时逻辑
+        // Piling mode timer logic
         private async void timer1_Tick(object sender, EventArgs e)
         {
             if (PilingModeCheckbox.Checked)
