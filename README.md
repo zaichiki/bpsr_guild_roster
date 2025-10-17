@@ -1,35 +1,43 @@
-# 星痕共鸣DPS统计工具
+# Star Resonance DPS Analysis Tool (Guild Roster Fork)
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-brightgreen.svg)](https://www.gnu.org/licenses/agpl-3.0.txt)
 
-本项目关键数据抓取与分析部分基于 [StarResonanceDamageCounter](https://github.com/dmlgzs/StarResonanceDamageCounter) 项目移植而来，感谢原作者对于本项目的帮助。
+## 🌟 About This Fork
 
-该工具无需修改游戏客户端，不违反游戏服务条款。该工具旨在帮助玩家更好地理解战斗数据，减少无效提升，提升游戏体验。使用该工具前，请确保不会将数据结果用于战力歧视等破坏游戏社区环境的行为。
+This is a fork of the original [StarResonanceDamageCounter](https://github.com/dmlgzs/StarResonanceDamageCounter) project with the addition of a **Guild Roster** window functionality. The core data capture and analysis components are based on the original project, and we thank the original author for their contribution.
 
-## 🚀 快速开始
+### Key Features Added:
+- **Guild Roster Window**: Enhanced functionality for guild management and member tracking
+- All original DPS analysis capabilities preserved
+- Improved data visualization and export options
 
-### 前置要求
+This tool does not modify the game client and does not violate game service terms. The tool aims to help players better understand combat data, reduce ineffective improvements, and enhance the gaming experience. Before using this tool, please ensure that the data results will not be used for power discrimination or other behaviors that damage the game community environment.
+
+## 🚀 Quick Start
+
+### Prerequisites
 
 - .NET 8.0
 
-## 📄 许可证
+## 📄 License
 
 [![AGPLv3](https://www.gnu.org/graphics/agplv3-with-text-162x68.png)](LICENSE)
 
-本项目采用 [GNU AFFERO GENERAL PUBLIC LICENSE version 3](LICENSE) 许可证。
+This project is licensed under the [GNU AFFERO GENERAL PUBLIC LICENSE version 3](LICENSE).
 
-使用本项目即表示您同意遵守该许可证的条款。
+By using this project, you agree to comply with the terms of this license.
 
-不欢迎某些不遵守本许可证的人。不欢迎某些修改或翻译了开源代码却做闭源、开源一更新闭源就跟进的人。
+We do not welcome those who do not comply with this license. We do not welcome those who modify or translate open source code but keep it closed source, or those who follow closed source updates when open source is updated.
 
-## 👥 贡献
+## 👥 Contributing
 
-欢迎提交 Issue 和 Pull Request 来改进项目！
+Welcome to submit Issues and Pull Requests to improve the project!
 
-## ⭐ 支持
+## ⭐ Support
 
-如果这个项目对您有帮助，请给它一个 Star ⭐
+If this project is helpful to you, please give it a Star ⭐
 
 ---
 
-**免责声明**：本工具仅用于游戏数据分析学习目的，不得用于任何违反游戏服务条款的行为。使用者需自行承担相关风险。项目开发者不对任何他人使用本工具的恶意战力歧视行为负责。请在使用前确保遵守游戏社区的相关规定和道德标准。
+**Disclaimer**: This tool is for game data analysis learning purposes only and must not be used for any behavior that violates game service terms. Users must bear the relevant risks themselves. The project developers are not responsible for any malicious power discrimination behavior by others using this tool. Please ensure compliance with relevant game community regulations and ethical standards before use.
+
