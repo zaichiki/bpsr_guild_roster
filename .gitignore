@@ -365,3 +365,6 @@ FodyWeavers.xsd
 /StarResonanceDpsAnalysis/StarResonanceDpsAnalysis.csproj.user
 
 /StarResonanceDpsAnalysis/Properties/PublishProfiles/
+
+# Discord secrets - contains sensitive bot tokens
+/StarResonanceDpsAnalysis/discord_secrets.ini

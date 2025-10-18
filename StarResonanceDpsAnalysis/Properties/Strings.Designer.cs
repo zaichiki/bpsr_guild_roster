@@ -214,6 +214,15 @@ namespace StarResonanceDpsAnalysis.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Guild Member Discord Data.
+        /// </summary>
+        internal static string Menu_GuildMemberDiscordData {
+            get {
+                return ResourceManager.GetString("Menu_GuildMemberDiscordData", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to 死亡统计.
         /// </summary>
         internal static string Menu_DeathStatistics {

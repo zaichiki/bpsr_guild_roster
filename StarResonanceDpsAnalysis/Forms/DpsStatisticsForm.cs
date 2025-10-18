@@ -267,6 +267,7 @@ namespace StarResonanceDpsAnalysis.Forms // Define namespace: location of form-r
                     new ContextMenuStripItem(Properties.Strings.Menu_SkillDiary){ IconSvg = Resources.diaryIcon, },
                     new ContextMenuStripItem(Properties.Strings.Menu_DamageReference){ IconSvg = Resources.reference, },
                     new ContextMenuStripItem(Properties.Strings.Menu_GuildRoster){ IconSvg = Resources.userUid, }, // First level menu: guild roster
+                    new ContextMenuStripItem(Properties.Strings.Menu_GuildMemberDiscordData){ IconSvg = Resources.userUid, }, // First level menu: guild member discord data
                     new ContextMenuStripItem(Properties.Strings.Menu_PilingMode){ IconSvg = Resources.Stakes }, // First level menu: piling mode
                     new ContextMenuStripItem(Properties.Strings.Menu_Exit){ IconSvg = Resources.quit, }, // First level menu: exit
              } // Array end
@@ -347,6 +348,15 @@ namespace StarResonanceDpsAnalysis.Forms // Define namespace: location of form-r
                         FormManager.guildRosterForm.Show(); // Show window
                         FormManager.guildRosterForm.BringToFront(); // Bring window to front
                         FormManager.guildRosterForm.Activate(); // Activate window (give it focus)
+                        break;
+                    case var s when s == Properties.Strings.Menu_GuildMemberDiscordData: // Click "Guild Member Discord Data"
+                        if (FormManager.guildMemberDiscordDataForm == null || FormManager.guildMemberDiscordDataForm.IsDisposed) // If guild member discord data form doesn't exist or is disposed
+                        {
+                            FormManager.guildMemberDiscordDataForm = new GuildMemberDiscordDataForm(); // Create window
+                        }
+                        FormManager.guildMemberDiscordDataForm.Show(); // Show window
+                        FormManager.guildMemberDiscordDataForm.BringToFront(); // Bring window to front
+                        FormManager.guildMemberDiscordDataForm.Activate(); // Activate window (give it focus)
                         break;
                     case "统计排除": // Click "Statistics Exclusion"
                         break; // Placeholder: to be implemented later

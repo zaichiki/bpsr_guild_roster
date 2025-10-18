@@ -97,7 +97,7 @@ namespace StarResonanceDpsAnalysis.Core
                 using (var writer = new StreamWriter(filePath, false, Encoding.UTF8))
                 {
                     // Write TSV header
-                    writer.WriteLine("UserId\tUserIdSecondary\tPlayerName\tCharacterLevel\tGuildName\tClassId\tClassVariant\tGearScore\tRoleId\tActivity1\tActivity2\tLastLogin\tParsedLastLogin\tJoinTS\tParsedJoinTS");
+                    writer.WriteLine("UserId\tUserIdSecondary\tPlayerName\tCharacterLevel\tGuildName\tClass\tGearScore\tRole\tActivity1\tActivity2\tLastLogin\tParsedLastLogin\tJoinTS\tParsedJoinTS\tDiscordIsMember\tDiscordNameData\tDiscordHasRole");
 
                     foreach (var kvp in CurrentGuildData.OrderBy(x => x.Key))
                     {
@@ -111,16 +111,18 @@ namespace StarResonanceDpsAnalysis.Core
                             EscapeTsvField(data.PlayerName),
                             data.CharacterLevel.ToString(),
                             EscapeTsvField(data.GuildName),
-                            data.ClassId.ToString(),
-                            data.ClassVariant.ToString(),
+                            EscapeTsvField(data.ClassDisplay), // Use class name instead of ID
                             data.GearScore.ToString(),
-                            data.RoleId.ToString(),
+                            EscapeTsvField(GetRoleDisplayName(data.RoleId)), // Use readable role name
                             data.Activity1.ToString(),
                             data.Activity2.ToString(),
                             data.LastLoginTS.ToString(),
                             data.ParsedLastLoginTS?.ToString("yyyy-MM-dd HH:mm:ss") ?? "",
                             data.JoinTS.ToString(),
-                            data.ParsedJoinTS?.ToString("yyyy-MM-dd HH:mm:ss") ?? ""
+                            data.ParsedJoinTS?.ToString("yyyy-MM-dd HH:mm:ss") ?? "",
+                            EscapeTsvField(data.DiscordIsMember),
+                            EscapeTsvField(data.DiscordNameData),
+                            EscapeTsvField(data.DiscordHasRole)
                         };
 
                         writer.WriteLine(string.Join("\t", row));
@@ -145,6 +147,23 @@ namespace StarResonanceDpsAnalysis.Core
         {
             // Update the current data first
             UpdateGuildData(memberData, activityData);            
+        }
+
+        /// <summary>
+        /// Converts RoleId to readable role name
+        /// </summary>
+        /// <param name="roleId">Role ID to convert</param>
+        /// <returns>Readable role name</returns>
+        private static string GetRoleDisplayName(ulong roleId)
+        {
+            return roleId switch
+            {
+                1 => "master",
+                2 => "vice master", 
+                3 => "administrator",
+                4 => "member",
+                _ => $"role_{roleId}"
+            };
         }
 
         /// <summary>
@@ -198,5 +217,10 @@ namespace StarResonanceDpsAnalysis.Core
         public string LastLoginDisplay => ParsedLastLoginTS?.ToString("yyyy-MM-dd HH:mm") ?? "Unknown";
         public string JoinDateDisplay => ParsedJoinTS?.ToString("yyyy-MM-dd") ?? "Unknown";
         public string RoleDisplay => RoleId.ToString();
+        
+        // Discord-related properties
+        public string DiscordIsMember { get; set; } = "no";
+        public string DiscordNameData { get; set; } = "";
+        public string DiscordHasRole { get; set; } = "false";
     }
 }

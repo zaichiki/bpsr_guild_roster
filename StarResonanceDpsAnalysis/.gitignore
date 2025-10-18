@@ -1,0 +1,21 @@
+# Discord secrets - contains sensitive bot tokens
+discord_secrets.ini
+
+# Visual Studio
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.cache
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS generated files
+.DS_Store
+Thumbs.db

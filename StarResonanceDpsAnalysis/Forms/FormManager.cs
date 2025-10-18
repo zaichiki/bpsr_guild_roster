@@ -9,13 +9,10 @@ namespace StarResonanceDpsAnalysis.Forms
 {
     public class FormManager
     {
-        public const string APP_NAME = "别查我DPS";
+        public const string APP_NAME = "Do not look at my DPS";
         public static string AppVersion { get => $"v{Application.ProductVersion.Split('+')[0]}"; }
 
-
         public static SkillDiary skillDiary;//
-
-
 
         public static SkillDetailForm skillDetailForm;//技能详情窗体
 
@@ -40,6 +37,8 @@ namespace StarResonanceDpsAnalysis.Forms
         public static ModuleCalculationForm moduleCalculationForm;//模块计算窗体
 
         public static GuildRosterForm guildRosterForm;//公会花名册窗体
+
+        public static GuildMemberDiscordDataForm guildMemberDiscordDataForm;//公会成员Discord数据窗体
 
         /// <summary>
         /// 统一设置透明度
