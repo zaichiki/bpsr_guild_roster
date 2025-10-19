@@ -35,6 +35,7 @@ namespace StarResonanceDpsAnalysis.Forms
             table_GuildRoster = new AntdUI.Table();
             panel2 = new AntdUI.Panel();
             button_Export = new AntdUI.Button();
+            button_ExportSpreadsheet = new AntdUI.Button();
             button_Close = new AntdUI.Button();
             pageHeader1.SuspendLayout();
             panel1.SuspendLayout();
@@ -94,6 +95,7 @@ namespace StarResonanceDpsAnalysis.Forms
             // panel2
             // 
             panel2.Controls.Add(button_Export);
+            panel2.Controls.Add(button_ExportSpreadsheet);
             panel2.Controls.Add(button_Close);
             panel2.Dock = DockStyle.Bottom;
             panel2.Location = new Point(0, 500);
@@ -106,7 +108,7 @@ namespace StarResonanceDpsAnalysis.Forms
             // 
             button_Export.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             button_Export.Font = new Font("HarmonyOS Sans SC", 9F);
-            button_Export.Location = new Point(570, 15);
+            button_Export.Location = new Point(400, 15);
             button_Export.Name = "button_Export";
             button_Export.Radius = 3;
             button_Export.Size = new Size(100, 30);
@@ -114,15 +116,27 @@ namespace StarResonanceDpsAnalysis.Forms
             button_Export.Text = "Export TSV";
             button_Export.Click += button_Export_Click;
             // 
+            // button_ExportSpreadsheet
+            // 
+            button_ExportSpreadsheet.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            button_ExportSpreadsheet.Font = new Font("HarmonyOS Sans SC", 9F);
+            button_ExportSpreadsheet.Location = new Point(510, 15);
+            button_ExportSpreadsheet.Name = "button_ExportSpreadsheet";
+            button_ExportSpreadsheet.Radius = 3;
+            button_ExportSpreadsheet.Size = new Size(170, 30);
+            button_ExportSpreadsheet.TabIndex = 1;
+            button_ExportSpreadsheet.Text = "Export to Spreadsheet";
+            button_ExportSpreadsheet.Click += button_ExportSpreadsheet_Click;
+            // 
             // button_Close
             // 
             button_Close.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             button_Close.Font = new Font("HarmonyOS Sans SC", 9F);
-            button_Close.Location = new Point(680, 15);
+            button_Close.Location = new Point(690, 15);
             button_Close.Name = "button_Close";
             button_Close.Radius = 3;
             button_Close.Size = new Size(100, 30);
-            button_Close.TabIndex = 1;
+            button_Close.TabIndex = 2;
             button_Close.Text = "Close";
             button_Close.Click += button_Close_Click;
             // 
@@ -160,5 +174,6 @@ namespace StarResonanceDpsAnalysis.Forms
         private AntdUI.Panel panel2;
         private AntdUI.Button button_Close;
         private AntdUI.Button button_Export;
+        private AntdUI.Button button_ExportSpreadsheet;
     }
 }

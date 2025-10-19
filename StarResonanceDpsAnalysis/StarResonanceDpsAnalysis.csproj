@@ -32,6 +32,8 @@
     <PackageReference Include="Discord.Net" Version="3.18.0" />
     <PackageReference Include="Flurl.Http" Version="3.2.4" />
     <PackageReference Include="Google.Protobuf" Version="3.32.0-rc2" />
+    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.68.0.3407" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="PacketDotNet" Version="1.4.9-pre44" />
     <PackageReference Include="SharpPcap" Version="6.3.1" />

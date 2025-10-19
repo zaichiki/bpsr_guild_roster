@@ -224,6 +224,65 @@ namespace StarResonanceDpsAnalysis.Forms
         }
 
         /// <summary>
+        /// Export to Spreadsheet button click event handler
+        /// </summary>
+        private async void button_ExportSpreadsheet_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Disable the button to prevent multiple clicks
+                button_ExportSpreadsheet.Enabled = false;
+                button_ExportSpreadsheet.Text = "Exporting...";
+
+                // Load Google Sheets configuration
+                var config = GoogleSheetsConfigHelper.ReadGoogleSheetsConfig();
+                
+                // Check if configuration is complete
+                if (!config.DocumentId.Any())
+                {
+                    MessageBox.Show("Google Sheets Document ID is not configured.\n\nPlease set the Document ID in config.ini under [GoogleSheets] section.", 
+                        "Configuration Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Create and authenticate with Google Sheets service
+                var sheetsService = new GoogleSheetsService(new GoogleSheetsService.GoogleSheetsConfig
+                {
+                    ClientId = config.ClientId,
+                    ClientSecret = config.ClientSecret,
+                    DocumentId = config.DocumentId,
+                    SheetName = config.SheetName
+                });
+
+                // Authenticate
+                bool authenticated = await sheetsService.AuthenticateAsync();
+                if (!authenticated)
+                {
+                    return; // Error message already shown in AuthenticateAsync
+                }
+
+                // Export the data
+                bool success = await sheetsService.ExportGuildRosterAsync(GuildRosterExporter.CurrentGuildData);
+                
+                if (success)
+                {
+                    Console.WriteLine("Guild roster exported successfully to Google Sheets");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error exporting to Google Sheets:\n{ex.Message}", "Export Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Console.WriteLine($"Google Sheets export error: {ex}");
+            }
+            finally
+            {
+                // Re-enable the button
+                button_ExportSpreadsheet.Enabled = true;
+                button_ExportSpreadsheet.Text = "Export to Spreadsheet";
+            }
+        }
+
+        /// <summary>
         /// Form closing event handler
         /// </summary>
         private void GuildRosterForm_FormClosing(object sender, FormClosingEventArgs e)
