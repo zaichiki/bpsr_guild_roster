@@ -1,0 +1,14 @@
+# Private Configuration Template
+# Copy this file to private_config.ini and fill in your actual values
+# This file should NOT be committed to the repository
+
+[Discord]
+SelectedGuildId=your_guild_id_here
+SelectedGuildName=your_guild_name_here
+MatchThreshold=80
+
+[GoogleSheets]
+ClientId=your_google_client_id_here
+ClientSecret=your_google_client_secret_here
+DocumentId=your_google_sheet_document_id_here
+SheetName=your_sheet_name_here

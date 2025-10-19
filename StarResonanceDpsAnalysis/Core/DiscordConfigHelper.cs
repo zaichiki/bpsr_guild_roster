@@ -10,6 +10,7 @@ namespace StarResonanceDpsAnalysis.Core
     public static class DiscordConfigHelper
     {
         private const string CONFIG_FILE = "config.ini";
+        private const string PRIVATE_CONFIG_FILE = "private_config.ini";
         private const string SECRETS_FILE = "discord_secrets.ini";
         private const string DISCORD_SECTION = "[Discord]";
 
@@ -92,16 +93,16 @@ namespace StarResonanceDpsAnalysis.Core
         }
 
         /// <summary>
-        /// Reads other Discord settings from main config file
+        /// Reads other Discord settings from private config file
         /// </summary>
         private static void ReadMainConfigFile(DiscordConfig config)
         {
-            if (!File.Exists(CONFIG_FILE))
+            if (!File.Exists(PRIVATE_CONFIG_FILE))
             {
                 return;
             }
 
-            var lines = File.ReadAllLines(CONFIG_FILE);
+            var lines = File.ReadAllLines(PRIVATE_CONFIG_FILE);
             bool inDiscordSection = false;
 
             foreach (var line in lines)
@@ -151,7 +152,7 @@ namespace StarResonanceDpsAnalysis.Core
         }
 
         /// <summary>
-        /// Updates Discord configuration in config.ini
+        /// Updates Discord configuration in private_config.ini
         /// </summary>
         /// <param name="updateAction">Action to update the config object</param>
         public static void UpdateDiscordConfig(Action<DiscordConfig> updateAction)
@@ -169,7 +170,7 @@ namespace StarResonanceDpsAnalysis.Core
         }
 
         /// <summary>
-        /// Writes Discord configuration to config.ini using Win32 API (same as AppConfig)
+        /// Writes Discord configuration to private_config.ini using Win32 API (same as AppConfig)
         /// </summary>
         /// <param name="config">Discord configuration to write</param>
         private static void WriteDiscordConfig(DiscordConfig config)
@@ -177,7 +178,7 @@ namespace StarResonanceDpsAnalysis.Core
             try
             {
                 // Use absolute path for Win32 API
-                string absolutePath = Path.GetFullPath(CONFIG_FILE);
+                string absolutePath = Path.GetFullPath(PRIVATE_CONFIG_FILE);
                 
                 // Use Win32 API to write individual keys (same as AppConfig)
                 bool result1 = WritePrivateProfileString("Discord", "SelectedGuildId", config.SelectedGuildId, absolutePath);
@@ -211,9 +212,9 @@ namespace StarResonanceDpsAnalysis.Core
             {
                 var lines = new List<string>();
                 
-                if (File.Exists(CONFIG_FILE))
+                if (File.Exists(PRIVATE_CONFIG_FILE))
                 {
-                    var existingLines = File.ReadAllLines(CONFIG_FILE);
+                    var existingLines = File.ReadAllLines(PRIVATE_CONFIG_FILE);
                     bool inDiscordSection = false;
                     bool discordSectionFound = false;
 
@@ -269,7 +270,7 @@ namespace StarResonanceDpsAnalysis.Core
                     lines.Add($"MatchThreshold={config.MatchThreshold}");
                 }
 
-                File.WriteAllLines(CONFIG_FILE, lines);
+                File.WriteAllLines(PRIVATE_CONFIG_FILE, lines);
             }
             catch (Exception ex)
             {

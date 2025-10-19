@@ -1,6 +1,12 @@
 # Discord secrets - contains sensitive bot tokens
 discord_secrets.ini
 
+# Private configuration - contains sensitive data like API keys and guild IDs
+private_config.ini
+
+# Google OAuth2 user credentials
+Google.Apis.Auth.OAuth2.Responses.TokenResponse-user
+
 # Visual Studio
 .vs/
 bin/

@@ -20,7 +20,7 @@ namespace StarResonanceDpsAnalysis.Core
         }
 
         /// <summary>
-        /// Read Google Sheets configuration from config.ini
+        /// Read Google Sheets configuration from private_config.ini
         /// </summary>
         /// <returns>Google Sheets configuration</returns>
         public static GoogleSheetsConfig ReadGoogleSheetsConfig()
@@ -29,13 +29,13 @@ namespace StarResonanceDpsAnalysis.Core
             
             try
             {
-                if (!File.Exists("config.ini"))
+                if (!File.Exists("private_config.ini"))
                 {
-                    Console.WriteLine("config.ini not found, using default Google Sheets configuration");
+                    Console.WriteLine("private_config.ini not found, using default Google Sheets configuration");
                     return config;
                 }
 
-                var lines = File.ReadAllLines("config.ini");
+                var lines = File.ReadAllLines("private_config.ini");
                 bool inGoogleSheetsSection = false;
 
                 foreach (var line in lines)
@@ -93,14 +93,14 @@ namespace StarResonanceDpsAnalysis.Core
         }
 
         /// <summary>
-        /// Save Google Sheets configuration to config.ini
+        /// Save Google Sheets configuration to private_config.ini
         /// </summary>
         /// <param name="config">Configuration to save</param>
         public static void SaveGoogleSheetsConfig(GoogleSheetsConfig config)
         {
             try
             {
-                var lines = File.Exists("config.ini") ? File.ReadAllLines("config.ini") : new string[0];
+                var lines = File.Exists("private_config.ini") ? File.ReadAllLines("private_config.ini") : new string[0];
                 var newLines = new List<string>();
                 bool inGoogleSheetsSection = false;
                 bool googleSheetsSectionFound = false;
@@ -148,7 +148,7 @@ namespace StarResonanceDpsAnalysis.Core
                     newLines.Add($"SheetName={config.SheetName}");
                 }
 
-                File.WriteAllLines("config.ini", newLines);
+                File.WriteAllLines("private_config.ini", newLines);
                 Console.WriteLine("Google Sheets configuration saved successfully");
             }
             catch (Exception ex)

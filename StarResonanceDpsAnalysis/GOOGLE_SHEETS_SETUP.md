@@ -47,9 +47,10 @@ This guide will help you set up Google Sheets integration for the Guild Roster e
 
 ### 5. Configure the Application
 
-1. Open `config.ini` in a text editor
-2. Find the `[GoogleSheets]` section
-3. Set the following values:
+1. Copy `private_config.ini.template` to `private_config.ini`
+2. Open `private_config.ini` in a text editor
+3. Find the `[GoogleSheets]` section
+4. Set the following values:
    ```
    [GoogleSheets]
    ClientId=YOUR_CLIENT_ID_HERE
@@ -57,6 +58,8 @@ This guide will help you set up Google Sheets integration for the Guild Roster e
    DocumentId=YOUR_DOCUMENT_ID_HERE
    SheetName=Guild Roster
    ```
+   
+   **Note**: The `private_config.ini` file is excluded from version control for security reasons.
 
 ### 6. First-Time Authentication
 
