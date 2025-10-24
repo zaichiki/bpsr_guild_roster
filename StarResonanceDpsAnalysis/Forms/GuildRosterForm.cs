@@ -62,6 +62,8 @@ namespace StarResonanceDpsAnalysis.Forms
             TitleText.Font = AppConfig.SaoFont;
             table_GuildRoster.Font = AppConfig.ContentFont;
             button_Close.Font = AppConfig.ContentFont;
+            button_SendPortraits.Font = AppConfig.ContentFont;
+            button_SendPortraitsProd.Font = AppConfig.ContentFont;
         }
 
         /// <summary>
@@ -220,6 +222,142 @@ namespace StarResonanceDpsAnalysis.Forms
             catch (Exception ex)
             {
                 MessageBox.Show($"Error exporting guild roster:\n{ex.Message}", "Export Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// Send Portraits button click event handler
+        /// </summary>
+        private async void button_SendPortraits_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Disable the button to prevent multiple clicks
+                button_SendPortraits.Enabled = false;
+                button_SendPortraits.Text = "Sending...";
+
+                // Load PortraitService configuration
+                var config = PortraitServiceConfigHelper.ReadPortraitServiceConfig();
+                
+                // Check if configuration is complete
+                if (string.IsNullOrEmpty(config.Url) || string.IsNullOrEmpty(config.ApiKey))
+                {
+                    MessageBox.Show("PortraitService configuration is incomplete.\n\nPlease set the URL and API Key in private_config.ini under [PortraitService] section.", 
+                        "Configuration Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Get current guild data
+                var guildData = GuildRosterExporter.CurrentGuildData.Values.ToList();
+                
+                if (guildData.Count == 0)
+                {
+                    MessageBox.Show("No guild data available to send.", "No Data", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Convert guild data to portrait data
+                var portraitData = new List<PortraitService.PortraitData>();
+                foreach (var member in guildData)
+                {
+                    portraitData.Add(new PortraitService.PortraitData
+                    {
+                        PlayerId = member.UserId.ToString(),
+                        PlayerName = member.PlayerName,
+                        SquareImageUrl = member.SquareImageUrl,
+                        VerticalImageUrl = member.VerticalImageUrl
+                    });
+                }
+
+                // Create and use PortraitService
+                using (var portraitService = new PortraitService(config.Url, config.ApiKey))
+                {
+                    bool success = await portraitService.SendPortraitsAsync(portraitData);
+                    
+                    if (success)
+                    {
+                        Console.WriteLine($"Successfully sent {portraitData.Count} portraits to the service");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error sending portraits:\n{ex.Message}", "Send Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Console.WriteLine($"Portrait send error: {ex}");
+            }
+            finally
+            {
+                // Re-enable the button
+                button_SendPortraits.Enabled = true;
+                button_SendPortraits.Text = "Send Portraits";
+            }
+        }
+
+        /// <summary>
+        /// Send Portraits to Production button click event handler
+        /// </summary>
+        private async void button_SendPortraitsProd_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Disable the button to prevent multiple clicks
+                button_SendPortraitsProd.Enabled = false;
+                button_SendPortraitsProd.Text = "Sending...";
+
+                // Load PortraitServiceProd configuration
+                var config = PortraitServiceConfigHelper.ReadPortraitServiceConfig("PortraitServiceProd");
+                
+                // Check if configuration is complete
+                if (string.IsNullOrEmpty(config.Url) || string.IsNullOrEmpty(config.ApiKey))
+                {
+                    MessageBox.Show("PortraitServiceProd configuration is incomplete.\n\nPlease set the URL and API Key in private_config.ini under [PortraitServiceProd] section.", 
+                        "Configuration Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Get current guild data
+                var guildData = GuildRosterExporter.CurrentGuildData.Values.ToList();
+                
+                if (guildData.Count == 0)
+                {
+                    MessageBox.Show("No guild data available to send.", "No Data", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Convert guild data to portrait data
+                var portraitData = new List<PortraitService.PortraitData>();
+                foreach (var member in guildData)
+                {
+                    portraitData.Add(new PortraitService.PortraitData
+                    {
+                        PlayerId = member.UserId.ToString(),
+                        PlayerName = member.PlayerName,
+                        SquareImageUrl = member.SquareImageUrl,
+                        VerticalImageUrl = member.VerticalImageUrl
+                    });
+                }
+
+                // Create and use PortraitService
+                using (var portraitService = new PortraitService(config.Url, config.ApiKey))
+                {
+                    bool success = await portraitService.SendPortraitsAsync(portraitData);
+                    
+                    if (success)
+                    {
+                        Console.WriteLine($"Successfully sent {portraitData.Count} portraits to production service");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error sending portraits to production:\n{ex.Message}", "Send Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Console.WriteLine($"Portrait send to production error: {ex}");
+            }
+            finally
+            {
+                // Re-enable the button
+                button_SendPortraitsProd.Enabled = true;
+                button_SendPortraitsProd.Text = "Send to Prod";
             }
         }
 

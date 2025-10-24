@@ -61,6 +61,14 @@ namespace StarResonanceDpsAnalysis.Core
                         JoinTS = activity?.JoinTS ?? 0
                     };
 
+                    // Extract photo URLs from PlayerPhotoRaw
+                    if (member?.PlayerPhotoRaw != null && member.PlayerPhotoRaw.Any())
+                    {
+                        var photoUrls = ExtractPhotoUrls(member.PlayerPhotoRaw);
+                        joinedData.SquareImageUrl = photoUrls.SquareUrl;
+                        joinedData.VerticalImageUrl = photoUrls.VerticalUrl;
+                    }
+
                     CurrentGuildData[userId] = joinedData;
                 }
 
@@ -75,6 +83,64 @@ namespace StarResonanceDpsAnalysis.Core
                 throw;
             }
         }
+
+        /// <summary>
+        /// Extract square and vertical photo URLs from PlayerPhotoRaw data
+        /// </summary>
+        /// <param name="photoRaw">Raw photo data strings</param>
+        /// <returns>Photo URLs structure</returns>
+        private static (string SquareUrl, string VerticalUrl) ExtractPhotoUrls(List<string> photoRaw)
+        {
+            var squareUrl = string.Empty;
+            var verticalUrl = string.Empty;
+
+            if (photoRaw == null || !photoRaw.Any())
+                return (squareUrl, verticalUrl);
+
+            foreach (var rawString in photoRaw)
+            {
+                if (string.IsNullOrEmpty(rawString))
+                    continue;
+
+                // Look for URLs in the raw string
+                var urls = ExtractUrlsFromString(rawString);
+                
+                foreach (var url in urls)
+                {
+                    // Determine if it's square or vertical based on filename patterns
+                    if (url.Contains("snapshot") || url.Contains("square"))
+                    {
+                        squareUrl = url;
+                    }
+                    else if (url.Contains("halflength") || url.Contains("vertical"))
+                    {
+                        verticalUrl = url;
+                    }
+                }
+            }
+
+            return (squareUrl, verticalUrl);
+        }
+
+        /// <summary>
+        /// Extract URLs from a string that may contain multiple URLs
+        /// </summary>
+        /// <param name="input">Input string that may contain URLs</param>
+        /// <returns>List of found URLs</returns>
+        private static List<string> ExtractUrlsFromString(string input)
+        {
+            var urls = new List<string>();
+            var urlPattern = @"https://[^\s]+";
+            var matches = System.Text.RegularExpressions.Regex.Matches(input, urlPattern);
+            
+            foreach (System.Text.RegularExpressions.Match match in matches)
+            {
+                urls.Add(match.Value);
+            }
+            
+            return urls;
+        }
+
         /// <summary>
         /// Exports current joined guild data to TSV file
         /// </summary>
@@ -222,5 +288,9 @@ namespace StarResonanceDpsAnalysis.Core
         public string DiscordIsMember { get; set; } = "no";
         public string DiscordNameData { get; set; } = "";
         public string DiscordHasRole { get; set; } = "false";
+        
+        // Photo URL properties
+        public string SquareImageUrl { get; set; } = string.Empty;
+        public string VerticalImageUrl { get; set; } = string.Empty;
     }
 }
