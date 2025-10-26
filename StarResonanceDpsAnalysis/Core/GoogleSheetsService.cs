@@ -10,6 +10,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Security.Cryptography;
+using System.Linq;
 
 namespace StarResonanceDpsAnalysis.Core
 {
@@ -106,9 +108,37 @@ namespace StarResonanceDpsAnalysis.Core
 
                 return true;
             }
+            catch (TokenResponseException ex) when (ex.Error?.Error == "invalid_grant" || ex.Error?.Error == "token_expired")
+            {
+                // Token has expired or been revoked - clear stored credentials and prompt for re-authentication
+                Console.WriteLine("OAuth token expired or revoked. Clearing stored credentials...");
+                ClearStoredCredentials();
+                
+                MessageBox.Show("Your Google authentication has expired.\n\nClick OK to re-authenticate.\nA browser window will open for you to sign in again.", 
+                    "Re-authentication Required", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                
+                // Try authentication again - this will open the browser for re-authentication
+                return await ReAuthenticateAsync();
+            }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to authenticate with Google Sheets API:\n{ex.Message}\n\nThis may be due to:\n" +
+                var innerEx = ex.InnerException;
+                if (innerEx?.GetType().Name.Contains("TokenResponse") == true)
+                {
+                    // Token expired or revoked - clear stored credentials
+                    Console.WriteLine("Token expired or revoked. Clearing stored credentials...");
+                    ClearStoredCredentials();
+                    
+                    MessageBox.Show("Your Google authentication has expired.\n\nClick OK to re-authenticate.\nA browser window will open for you to sign in again.", 
+                        "Re-authentication Required", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    
+                    // Try re-authentication
+                    return await ReAuthenticateAsync();
+                }
+                
+                MessageBox.Show($"Failed to authenticate with Google Sheets API:\nError:{ex.Message}" + 
+                    (innerEx != null ? $"\nDetails:{innerEx.Message}" : "") +
+                    "\n\nThis may be due to:\n" +
                     "1. Invalid OAuth credentials\n" +
                     "2. Missing Google Sheets API access\n" +
                     "3. Network connectivity issues\n" +
@@ -116,6 +146,87 @@ namespace StarResonanceDpsAnalysis.Core
                     "Google Sheets Authentication Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Console.WriteLine($"Google Sheets authentication error: {ex}");
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Re-authenticate with Google Sheets API by clearing old credentials
+        /// </summary>
+        /// <returns>True if authentication successful, false otherwise</returns>
+        private async Task<bool> ReAuthenticateAsync()
+        {
+            try
+            {
+                // Try to get fresh credentials (will open browser)
+                var credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
+                    new ClientSecrets
+                    {
+                        ClientId = _config.ClientId,
+                        ClientSecret = _config.ClientSecret
+                    },
+                    _config.Scopes,
+                    "user",
+                    CancellationToken.None,
+                    new FileDataStore("StarResonanceDpsAnalysis", true));
+
+                // Create the Sheets service
+                _sheetsService = new SheetsService(new BaseClientService.Initializer()
+                {
+                    HttpClientInitializer = credential,
+                    ApplicationName = "Star Resonance DPS Analysis"
+                });
+
+                // Test the connection by trying to get spreadsheet info
+                var spreadsheet = await _sheetsService.Spreadsheets.Get(_documentId).ExecuteAsync();
+                Console.WriteLine($"Successfully re-authenticated with Google Sheet: {spreadsheet.Properties.Title}");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to re-authenticate with Google Sheets API:\n{ex.Message}\n\nThis may be due to:\n" +
+                    "1. Invalid OAuth credentials\n" +
+                    "2. Network connectivity issues\n" +
+                    "3. Browser authentication was cancelled", 
+                    "Google Sheets Re-authentication Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Console.WriteLine($"Google Sheets re-authentication error: {ex}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Clear stored OAuth credentials by deleting the token file
+        /// </summary>
+        private void ClearStoredCredentials()
+        {
+            try
+            {
+                // FileDataStore stores files in a "Datastore" subdirectory
+                // Default location on Windows: %USERPROFILE%\AppData\Roaming
+                var userDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                var dataStorePath = Path.Combine(userDataPath, "StarResonanceDpsAnalysis");
+                
+                if (Directory.Exists(dataStorePath))
+                {
+                    // Delete all files in the datastore directory
+                    var files = Directory.GetFiles(dataStorePath);
+                    foreach (var file in files)
+                    {
+                        try
+                        {
+                            File.Delete(file);
+                            Console.WriteLine($"Deleted stored credential file: {file}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Warning: Could not delete credential file {file}: {ex.Message}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: Could not clear stored credentials: {ex.Message}");
             }
         }
 

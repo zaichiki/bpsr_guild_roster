@@ -287,6 +287,8 @@ namespace StarResonanceDpsAnalysis.Core
         // Discord-related properties
         public string DiscordIsMember { get; set; } = "no";
         public string DiscordNameData { get; set; } = "";
+        public string DiscordServerNickname { get; set; } = "";
+        public string DiscordNickname { get; set; } = "";
         public string DiscordHasRole { get; set; } = "false";
         
         // Photo URL properties
@@ -294,3 +296,4 @@ namespace StarResonanceDpsAnalysis.Core
         public string VerticalImageUrl { get; set; } = string.Empty;
     }
 }
+    

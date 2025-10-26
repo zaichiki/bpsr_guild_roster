@@ -64,6 +64,8 @@ namespace StarResonanceDpsAnalysis.Forms
             button_Close.Font = AppConfig.ContentFont;
             button_SendPortraits.Font = AppConfig.ContentFont;
             button_SendPortraitsProd.Font = AppConfig.ContentFont;
+            button_SendDataTest.Font = AppConfig.ContentFont;
+            button_SendDataProd.Font = AppConfig.ContentFont;
         }
 
         /// <summary>
@@ -362,6 +364,116 @@ namespace StarResonanceDpsAnalysis.Forms
         }
 
         /// <summary>
+        /// Send Data to Test endpoint button click event handler
+        /// </summary>
+        private async void button_SendDataTest_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Disable the button to prevent multiple clicks
+                button_SendDataTest.Enabled = false;
+                button_SendDataTest.Text = "Sending...";
+
+                // Load GuildRosterService configuration
+                var config = GuildRosterServiceConfigHelper.ReadGuildRosterServiceConfig("GuildRosterService");
+                
+                // Check if configuration is complete
+                if (string.IsNullOrEmpty(config.Url) || string.IsNullOrEmpty(config.ApiKey))
+                {
+                    MessageBox.Show("GuildRosterService configuration is incomplete.\n\nPlease set the URL and API Key in private_config.ini under [GuildRosterService] section.", 
+                        "Configuration Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Get current guild data
+                var guildData = GuildRosterExporter.CurrentGuildData.Values.ToList();
+                
+                if (guildData.Count == 0)
+                {
+                    MessageBox.Show("No guild data available to send.", "No Data", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Create and use GuildRosterService
+                using (var guildRosterService = new GuildRosterService(config.Url, config.ApiKey))
+                {
+                    bool success = await guildRosterService.SendGuildDataAsync(guildData);
+                    
+                    if (success)
+                    {
+                        Console.WriteLine($"Successfully sent {guildData.Count} guild members to test service");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error sending guild data to test:\n{ex.Message}", "Send Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Console.WriteLine($"Guild data send to test error: {ex}");
+            }
+            finally
+            {
+                // Re-enable the button
+                button_SendDataTest.Enabled = true;
+                button_SendDataTest.Text = "data>test";
+            }
+        }
+
+        /// <summary>
+        /// Send Data to Production endpoint button click event handler
+        /// </summary>
+        private async void button_SendDataProd_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Disable the button to prevent multiple clicks
+                button_SendDataProd.Enabled = false;
+                button_SendDataProd.Text = "Sending...";
+
+                // Load GuildRosterServiceProd configuration
+                var config = GuildRosterServiceConfigHelper.ReadGuildRosterServiceConfig("GuildRosterServiceProd");
+                
+                // Check if configuration is complete
+                if (string.IsNullOrEmpty(config.Url) || string.IsNullOrEmpty(config.ApiKey))
+                {
+                    MessageBox.Show("GuildRosterServiceProd configuration is incomplete.\n\nPlease set the URL and API Key in private_config.ini under [GuildRosterServiceProd] section.", 
+                        "Configuration Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Get current guild data
+                var guildData = GuildRosterExporter.CurrentGuildData.Values.ToList();
+                
+                if (guildData.Count == 0)
+                {
+                    MessageBox.Show("No guild data available to send.", "No Data", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Create and use GuildRosterService
+                using (var guildRosterService = new GuildRosterService(config.Url, config.ApiKey))
+                {
+                    bool success = await guildRosterService.SendGuildDataAsync(guildData);
+                    
+                    if (success)
+                    {
+                        Console.WriteLine($"Successfully sent {guildData.Count} guild members to production service");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error sending guild data to production:\n{ex.Message}", "Send Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Console.WriteLine($"Guild data send to production error: {ex}");
+            }
+            finally
+            {
+                // Re-enable the button
+                button_SendDataProd.Enabled = true;
+                button_SendDataProd.Text = "data>prod";
+            }
+        }
+
+        /// <summary>
         /// Export to Spreadsheet button click event handler
         /// </summary>
         private async void button_ExportSpreadsheet_Click(object sender, EventArgs e)
@@ -512,6 +624,8 @@ namespace StarResonanceDpsAnalysis.Forms
                 {
                     member.DiscordIsMember = "no";
                     member.DiscordNameData = "";
+                    member.DiscordServerNickname = "";
+                    member.DiscordNickname = "";
                     member.DiscordHasRole = "false";
                 }
                 return;
@@ -525,6 +639,8 @@ namespace StarResonanceDpsAnalysis.Forms
                 if (bestMatch != null)
                 {
                     guildMember.DiscordNameData = $"{bestMatch.ServerNickname}|{bestMatch.Nickname}";
+                    guildMember.DiscordServerNickname = bestMatch.ServerNickname;
+                    guildMember.DiscordNickname = bestMatch.Nickname;
                     guildMember.DiscordHasRole = bestMatch.HasGuildMemberRole ? "true" : "false";
                     
                     // Determine membership status
@@ -541,6 +657,8 @@ namespace StarResonanceDpsAnalysis.Forms
                 {
                     guildMember.DiscordIsMember = "no";
                     guildMember.DiscordNameData = "";
+                    guildMember.DiscordServerNickname = "";
+                    guildMember.DiscordNickname = "";
                     guildMember.DiscordHasRole = "false";
                 }
             }

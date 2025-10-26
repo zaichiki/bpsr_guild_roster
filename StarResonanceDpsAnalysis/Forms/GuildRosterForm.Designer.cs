@@ -38,6 +38,8 @@ namespace StarResonanceDpsAnalysis.Forms
             button_ExportSpreadsheet = new AntdUI.Button();
             button_SendPortraits = new AntdUI.Button();
             button_SendPortraitsProd = new AntdUI.Button();
+            button_SendDataTest = new AntdUI.Button();
+            button_SendDataProd = new AntdUI.Button();
             button_Close = new AntdUI.Button();
             pageHeader1.SuspendLayout();
             panel1.SuspendLayout();
@@ -100,6 +102,8 @@ namespace StarResonanceDpsAnalysis.Forms
             panel2.Controls.Add(button_ExportSpreadsheet);
             panel2.Controls.Add(button_SendPortraits);
             panel2.Controls.Add(button_SendPortraitsProd);
+            panel2.Controls.Add(button_SendDataTest);
+            panel2.Controls.Add(button_SendDataProd);
             panel2.Controls.Add(button_Close);
             panel2.Dock = DockStyle.Bottom;
             panel2.Location = new Point(0, 500);
@@ -156,6 +160,30 @@ namespace StarResonanceDpsAnalysis.Forms
             button_SendPortraitsProd.Text = "Send to Prod";
             button_SendPortraitsProd.Click += button_SendPortraitsProd_Click;
             // 
+            // button_SendDataTest
+            // 
+            button_SendDataTest.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            button_SendDataTest.Font = new Font("HarmonyOS Sans SC", 9F);
+            button_SendDataTest.Location = new Point(10, 15);
+            button_SendDataTest.Name = "button_SendDataTest";
+            button_SendDataTest.Radius = 3;
+            button_SendDataTest.Size = new Size(80, 30);
+            button_SendDataTest.TabIndex = 4;
+            button_SendDataTest.Text = "data>test";
+            button_SendDataTest.Click += button_SendDataTest_Click;
+            // 
+            // button_SendDataProd
+            // 
+            button_SendDataProd.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            button_SendDataProd.Font = new Font("HarmonyOS Sans SC", 9F);
+            button_SendDataProd.Location = new Point(100, 15);
+            button_SendDataProd.Name = "button_SendDataProd";
+            button_SendDataProd.Radius = 3;
+            button_SendDataProd.Size = new Size(70, 30);
+            button_SendDataProd.TabIndex = 5;
+            button_SendDataProd.Text = "data>prod";
+            button_SendDataProd.Click += button_SendDataProd_Click;
+            // 
             // button_Close
             // 
             button_Close.Anchor = AnchorStyles.Top | AnchorStyles.Right;
@@ -164,7 +192,7 @@ namespace StarResonanceDpsAnalysis.Forms
             button_Close.Name = "button_Close";
             button_Close.Radius = 3;
             button_Close.Size = new Size(100, 30);
-            button_Close.TabIndex = 4;
+            button_Close.TabIndex = 6;
             button_Close.Text = "Close";
             button_Close.Click += button_Close_Click;
             // 
@@ -205,5 +233,7 @@ namespace StarResonanceDpsAnalysis.Forms
         private AntdUI.Button button_ExportSpreadsheet;
         private AntdUI.Button button_SendPortraits;
         private AntdUI.Button button_SendPortraitsProd;
+        private AntdUI.Button button_SendDataTest;
+        private AntdUI.Button button_SendDataProd;
     }
 }
