@@ -444,6 +444,10 @@ namespace StarResonanceDpsAnalysis.Core
                                                                                                     // Extract strings from deep nested data
                                                                                                     var deepStrings = ExtractStrings(deepBytes);
 
+                                                                                                    if(deepFieldNumber == 3 && !deepStrings.Any()) {
+                                                                                                        //Console.WriteLine("No strings found for player name?");
+                                                                                                    }
+
                                                                                                     // Special handling for player name (field 3)
                                                                                                     if (deepFieldNumber == 3 && deepStrings.Any())
                                                                                                     {
@@ -701,7 +705,7 @@ namespace StarResonanceDpsAnalysis.Core
                 }
                 else
                 {
-                    if (current.Count >= 3) // Minimum 3 chars
+                    if (current.Count >= 2) // Minimum 2 chars
                     {
                         try
                         {
@@ -720,7 +724,7 @@ namespace StarResonanceDpsAnalysis.Core
                 }
             }
             
-            if (current.Count >= 3)
+            if (current.Count >= 2)
             {
                 try
                 {
