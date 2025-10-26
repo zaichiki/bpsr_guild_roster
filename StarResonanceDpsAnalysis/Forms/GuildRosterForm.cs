@@ -693,23 +693,9 @@ namespace StarResonanceDpsAnalysis.Forms
             if (exactMatch != null)
                 return exactMatch;
 
-            // Then try exact match on Discord username
-            exactMatch = _discordMembers.FirstOrDefault(d => 
-                string.Equals(d.Nickname, guildMemberName, StringComparison.OrdinalIgnoreCase));
-            if (exactMatch != null)
-                return exactMatch;
-
             // Then try substring match on server nickname
             var substringMatch = _discordMembers.FirstOrDefault(d => 
-                d.ServerNickname.Contains(guildMemberName, StringComparison.OrdinalIgnoreCase) ||
-                guildMemberName.Contains(d.ServerNickname, StringComparison.OrdinalIgnoreCase));
-            if (substringMatch != null)
-                return substringMatch;
-
-            // Then try substring match on Discord username
-            substringMatch = _discordMembers.FirstOrDefault(d => 
-                d.Nickname.Contains(guildMemberName, StringComparison.OrdinalIgnoreCase) ||
-                guildMemberName.Contains(d.Nickname, StringComparison.OrdinalIgnoreCase));
+                d.ServerNickname.Contains(guildMemberName, StringComparison.OrdinalIgnoreCase));
             if (substringMatch != null)
                 return substringMatch;
 
