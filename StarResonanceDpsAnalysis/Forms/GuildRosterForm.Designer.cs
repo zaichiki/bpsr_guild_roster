@@ -145,7 +145,7 @@ namespace StarResonanceDpsAnalysis.Forms
             button_SendPortraits.Radius = 3;
             button_SendPortraits.Size = new Size(100, 30);
             button_SendPortraits.TabIndex = 2;
-            button_SendPortraits.Text = "Send Portraits";
+            button_SendPortraits.Text = "PFP>TEST";
             button_SendPortraits.Click += button_SendPortraits_Click;
             // 
             // button_SendPortraitsProd
@@ -157,7 +157,7 @@ namespace StarResonanceDpsAnalysis.Forms
             button_SendPortraitsProd.Radius = 3;
             button_SendPortraitsProd.Size = new Size(100, 30);
             button_SendPortraitsProd.TabIndex = 3;
-            button_SendPortraitsProd.Text = "Send to Prod";
+            button_SendPortraitsProd.Text = "PFP>PROD";
             button_SendPortraitsProd.Click += button_SendPortraitsProd_Click;
             // 
             // button_SendDataTest

@@ -1,12 +1,13 @@
 ﻿using SharpPcap;
 using StarResonanceDpsAnalysis.Plugin;
+using System.Windows.Forms;
 
 namespace StarResonanceDpsAnalysis.Forms
 {
     public partial class SettingsForm
     {
         /// <summary>
-        /// 加载本机所有网卡到下拉框
+        /// Load all network adapters into dropdown
         /// </summary>
         public void LoadDevices()
         {
@@ -14,7 +15,7 @@ namespace StarResonanceDpsAnalysis.Forms
             InterfaceComboBox.Items.Clear();
             foreach (var d in devices) InterfaceComboBox.Items.Add(d.Description);
 
-            // 自动选择或按配置选择
+            // Auto-select or select based on configuration
             int targetIndex = (AppConfig.NetworkCard >= 0 && AppConfig.NetworkCard < devices.Count)
                 ? AppConfig.NetworkCard
                 : GetBestNetworkCardIndex(devices);
@@ -23,11 +24,11 @@ namespace StarResonanceDpsAnalysis.Forms
             {
                 AppConfig.NetworkCard = targetIndex;
                 InterfaceComboBox.SelectedIndex = targetIndex;
-                Console.WriteLine($"选择网卡: {devices[targetIndex].Description} (索引: {targetIndex})");
+                Console.WriteLine($"Selected network card: {devices[targetIndex].Description} (index: {targetIndex})");
             }
             else
             {
-                Console.WriteLine("未找到可用网卡");
+                Console.WriteLine("No available network cards found");
             }
 
             input1.Text = AppConfig.MouseThroughKey.ToString();

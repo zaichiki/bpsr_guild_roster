@@ -11,7 +11,6 @@ namespace StarResonanceDpsAnalysis.Core
     {
         private const string CONFIG_FILE = "config.ini";
         private const string PRIVATE_CONFIG_FILE = "private_config.ini";
-        private const string SECRETS_FILE = "discord_secrets.ini";
         private const string DISCORD_SECTION = "[Discord]";
 
         /// <summary>
@@ -35,10 +34,7 @@ namespace StarResonanceDpsAnalysis.Core
 
             try
             {
-                // Read bot token from secrets file
-                ReadSecretsFile(config);
-                
-                // Read other settings from main config file
+                // Read all settings from private config file
                 ReadMainConfigFile(config);
             }
             catch (Exception ex)
@@ -50,50 +46,7 @@ namespace StarResonanceDpsAnalysis.Core
         }
 
         /// <summary>
-        /// Reads bot token from secrets file
-        /// </summary>
-        private static void ReadSecretsFile(DiscordConfig config)
-        {
-            if (!File.Exists(SECRETS_FILE))
-            {
-                return;
-            }
-
-            var lines = File.ReadAllLines(SECRETS_FILE);
-            bool inDiscordSection = false;
-
-            foreach (var line in lines)
-            {
-                var trimmedLine = line.Trim();
-
-                if (trimmedLine == DISCORD_SECTION)
-                {
-                    inDiscordSection = true;
-                    continue;
-                }
-
-                if (inDiscordSection)
-                {
-                    if (trimmedLine.StartsWith("[") && trimmedLine != DISCORD_SECTION)
-                    {
-                        break;
-                    }
-
-                    if (trimmedLine.Contains("="))
-                    {
-                        var parts = trimmedLine.Split('=', 2);
-                        if (parts.Length == 2 && parts[0].Trim() == "BotToken")
-                        {
-                            config.BotToken = parts[1].Trim();
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Reads other Discord settings from private config file
+        /// Reads Discord settings from private config file
         /// </summary>
         private static void ReadMainConfigFile(DiscordConfig config)
         {
@@ -132,6 +85,9 @@ namespace StarResonanceDpsAnalysis.Core
 
                             switch (key)
                             {
+                                case "BotToken":
+                                    config.BotToken = value;
+                                    break;
                                 case "SelectedGuildId":
                                     config.SelectedGuildId = value;
                                     break;

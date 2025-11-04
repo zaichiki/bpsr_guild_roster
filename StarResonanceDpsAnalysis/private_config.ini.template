@@ -3,6 +3,7 @@
 # This file should NOT be committed to the repository
 
 [Discord]
+BotToken=your_discord_bot_token_here
 SelectedGuildId=your_guild_id_here
 SelectedGuildName=your_guild_name_here
 MatchThreshold=80

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -41,6 +42,9 @@ namespace StarResonanceDpsAnalysis.Forms
             // Set up fonts from resources
             SetDefaultFontFromResources();
             
+            // Update button visibility based on config availability
+            UpdateButtonVisibility();
+            
             // Subscribe to guild data updates
             GuildRosterExporter.GuildDataUpdated += OnGuildDataUpdated;
             
@@ -52,6 +56,66 @@ namespace StarResonanceDpsAnalysis.Forms
             
             // Load Discord data silently
             LoadDiscordDataAsync();
+        }
+
+        /// <summary>
+        /// Update button visibility based on configuration availability
+        /// </summary>
+        private void UpdateButtonVisibility()
+        {
+            // Check ClientId for button_ExportSpreadsheet
+            // First check secret_config.ini, then fall back to private_config.ini
+            bool hasClientId = false;
+            try
+            {
+                // Check secret_config.ini first
+                var secretConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "secret_config.ini");
+                if (File.Exists(secretConfigPath))
+                {
+                    var lines = File.ReadAllLines(secretConfigPath);
+                    foreach (var line in lines)
+                    {
+                        var trimmedLine = line.Trim();
+                        if (trimmedLine.StartsWith("ClientId", StringComparison.OrdinalIgnoreCase) && trimmedLine.Contains("="))
+                        {
+                            var parts = trimmedLine.Split('=', 2);
+                            if (parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[1].Trim()))
+                            {
+                                hasClientId = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // Fall back to checking private_config.ini if not found in secret_config.ini
+                if (!hasClientId)
+                {
+                    var config = GoogleSheetsConfigHelper.ReadGoogleSheetsConfig();
+                    hasClientId = !string.IsNullOrEmpty(config.ClientId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error checking ClientId configuration: {ex.Message}");
+            }
+            button_ExportSpreadsheet.Visible = hasClientId;
+
+            // Check PortraitService URL
+            var portraitConfig = PortraitServiceConfigHelper.ReadPortraitServiceConfig();
+            button_SendPortraits.Visible = !string.IsNullOrEmpty(portraitConfig.Url);
+
+            // Check PortraitServiceProd URL
+            var portraitProdConfig = PortraitServiceConfigHelper.ReadPortraitServiceConfig("PortraitServiceProd");
+            button_SendPortraitsProd.Visible = !string.IsNullOrEmpty(portraitProdConfig.Url);
+
+            // Check GuildRosterService URL
+            var guildRosterConfig = GuildRosterServiceConfigHelper.ReadGuildRosterServiceConfig("GuildRosterService");
+            button_SendDataTest.Visible = !string.IsNullOrEmpty(guildRosterConfig.Url);
+
+            // Check GuildRosterServiceProd URL
+            var guildRosterProdConfig = GuildRosterServiceConfigHelper.ReadGuildRosterServiceConfig("GuildRosterServiceProd");
+            button_SendDataProd.Visible = !string.IsNullOrEmpty(guildRosterProdConfig.Url);
         }
 
         /// <summary>
@@ -200,7 +264,19 @@ namespace StarResonanceDpsAnalysis.Forms
         /// </summary>
         private void GuildRosterForm_Load(object sender, EventArgs e)
         {
-            // Additional initialization can be added here
+            // Enable always on top (same as DpsStatisticsForm)
+            EnsureTopMost();
+        }
+
+        /// <summary>
+        /// Ensure form is always on top
+        /// </summary>
+        private void EnsureTopMost()
+        {
+            TopMost = false;   // Turn off then on to force style refresh
+            TopMost = true;
+            Activate();
+            BringToFront();
         }
 
         /// <summary>

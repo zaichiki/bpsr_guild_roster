@@ -18,6 +18,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace StarResonanceDpsAnalysis.Forms
 {
@@ -84,23 +85,54 @@ namespace StarResonanceDpsAnalysis.Forms
             // # Startup and initialization event: load network device list during application startup phase, select default network card based on configuration
             Console.WriteLine("Loading network cards during application startup...");
 
-            if (AppConfig.NetworkCard >= 0)
+            try
             {
-                var devices = CaptureDeviceList.Instance; // # Device list: provided by SharpPcap
-                if (AppConfig.NetworkCard < devices.Count)
+                if (AppConfig.NetworkCard >= 0)
                 {
-                    SelectedDevice = devices[AppConfig.NetworkCard]; // # Select device based on index
-                    Console.WriteLine($"Network card selected at startup: {SelectedDevice.Description} (index: {AppConfig.NetworkCard})");
+                    var devices = CaptureDeviceList.Instance; // # Device list: provided by SharpPcap
+                    if (AppConfig.NetworkCard < devices.Count)
+                    {
+                        SelectedDevice = devices[AppConfig.NetworkCard]; // # Select device based on index
+                        Console.WriteLine($"Network card selected at startup: {SelectedDevice.Description} (index: {AppConfig.NetworkCard})");
+                    }
+                }
+                else
+                {
+                    // When not set, popup settings window to guide user selection
+                    if (FormManager.settingsForm == null || FormManager.settingsForm.IsDisposed)
+                    {
+                        FormManager.settingsForm = new SettingsForm();
+                    }
+                    FormManager.settingsForm.LoadDevices(); // # Settings form: populate device list
                 }
             }
-            else
+            catch (System.DllNotFoundException ex)
             {
-                // When not set, popup settings window to guide user selection
-                if (FormManager.settingsForm == null || FormManager.settingsForm.IsDisposed)
-                {
-                    FormManager.settingsForm = new SettingsForm();
-                }
-                FormManager.settingsForm.LoadDevices(); // # Settings form: populate device list
+                MessageBox.Show(
+                    "Npcap or WinPcap is required for this application to function.\n\n" +
+                    "Please install Npcap from: https://npcap.com/\n" +
+                    "Or WinPcap from: https://www.winpcap.org/\n\n" +
+                    "The application cannot run without network packet capture capabilities.\n\n" +
+                    $"Error: {ex.Message}",
+                    "Required Component Missing",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                Console.WriteLine($"Fatal error: Npcap/WinPcap not found. {ex.Message}");
+                System.Windows.Forms.Application.Exit();
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show(
+                    "Failed to initialize network capture devices.\n\n" +
+                    "Npcap or WinPcap must be installed and properly configured.\n\n" +
+                    $"Error: {ex.Message}",
+                    "Network Capture Initialization Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                Console.WriteLine($"Fatal error loading network devices: {ex.Message}");
+                System.Windows.Forms.Application.Exit();
             }
         }
 
