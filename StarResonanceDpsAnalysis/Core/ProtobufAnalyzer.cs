@@ -38,184 +38,10 @@ namespace StarResonanceDpsAnalysis.Core
         }
 
         /// <summary>
-        /// Format a decoded field value for display
-        /// </summary>
-        private static string FormatFieldValue(object value)
-        {
-            if (value == null) return "null";
-            if (value is string str) return $"\"{str}\"";
-            if (value is byte[] bytes) return $"[{bytes.Length} bytes] {BitConverter.ToString(bytes.Take(16).ToArray()).Replace("-", " ")}";
-            if (value is ProtoValue pv) return $"[ProtoValue {pv.Raw.Length} bytes]";
-            if (value is List<object> list) return $"[List with {list.Count} items]";
-            if (value is ulong ul) return $"{ul} (0x{ul:X})";
-            if (value is long l) return $"{l} (0x{l:X})";
-            return value.ToString() ?? "?";
-        }
-
-        /// <summary>
-        /// Recursively search for a specific numeric value in the decoded protobuf Dictionary
-        /// </summary>
-        private static void SearchForValueInDict(Dictionary<int, object> data, long targetValue, string path)
-        {
-            foreach (var kvp in data)
-            {
-                var item = kvp.Value;
-                string currentPath = string.IsNullOrEmpty(path) ? $"Field[{kvp.Key}]" : $"{path}[{kvp.Key}]";
-                
-                if (item is ulong ul && ul == (ulong)targetValue)
-                {
-                    Console.WriteLine($">>> FOUND {targetValue} at {currentPath} (ulong)");
-                }
-                else if (item is long l && l == targetValue)
-                {
-                    Console.WriteLine($">>> FOUND {targetValue} at {currentPath} (long)");
-                }
-                else if (item is int intVal && intVal == targetValue)
-                {
-                    Console.WriteLine($">>> FOUND {targetValue} at {currentPath} (int)");
-                }
-                else if (item is List<object> nestedList)
-                {
-                    SearchForValueInList(nestedList, targetValue, currentPath);
-                }
-                else if (item is Dictionary<int, object> nestedDict)
-                {
-                    SearchForValueInDict(nestedDict, targetValue, currentPath);
-                }
-                else if (item is ProtoValue pv && pv.Decoded != null)
-                {
-                    SearchForValueInDict(pv.Decoded, targetValue, currentPath);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Recursively search for a specific numeric value in a List
-        /// </summary>
-        private static void SearchForValueInList(List<object> data, long targetValue, string path)
-        {
-            for (int i = 0; i < data.Count; i++)
-            {
-                var item = data[i];
-                string currentPath = $"{path}[{i}]";
-                
-                if (item is ulong ul && ul == (ulong)targetValue)
-                {
-                    Console.WriteLine($">>> FOUND {targetValue} at {currentPath} (ulong)");
-                }
-                else if (item is long l && l == targetValue)
-                {
-                    Console.WriteLine($">>> FOUND {targetValue} at {currentPath} (long)");
-                }
-                else if (item is int intVal && intVal == targetValue)
-                {
-                    Console.WriteLine($">>> FOUND {targetValue} at {currentPath} (int)");
-                }
-                else if (item is List<object> nestedList)
-                {
-                    SearchForValueInList(nestedList, targetValue, currentPath);
-                }
-                else if (item is Dictionary<int, object> nestedDict)
-                {
-                    SearchForValueInDict(nestedDict, targetValue, currentPath);
-                }
-                else if (item is ProtoValue pv && pv.Decoded != null)
-                {
-                    SearchForValueInDict(pv.Decoded, targetValue, currentPath);
-                }
-            }
-        }
-
-        /// <summary>
         /// Analyze protobuf fields in the data
         /// </summary>
         private static void AnalyzeProtobufFields(byte[] data)
         {
-
-            if (!EnableDebugLogging) return; // Skip all debug output if disabled
-
-            try
-            {
-                var result = Blueprotobuf.Decode(data);
-                Console.WriteLine($"========== Blueprotobuf.Decode Result ==========");
-                Console.WriteLine($"Field count: {result.Count}");
-                
-                // Print all fields first to see what we have
-                foreach (var kvp in result)
-                {
-                    var field = kvp.Value;
-                    string fieldType = field?.GetType()?.Name ?? "null";
-                    Console.WriteLine($"Field[{kvp.Key}]: Type={fieldType}");
-                    
-                    // Extract bytes from either byte[] or ProtoValue
-                    byte[]? bytes = null;
-                    if (field is byte[] byteArray)
-                    {
-                        bytes = byteArray;
-                    }
-                    else if (field is ProtoValue protoVal)
-                    {
-                        bytes = protoVal.Raw;
-                    }
-                    
-                    if (bytes != null)
-                    {
-                        Console.WriteLine($"  Byte array length: {bytes.Length}");
-                        // Try to decode nested message
-                        if (bytes.Length > 10 && bytes.Length < 10000)
-                        {
-                            Console.WriteLine($"\n--- Decoding nested Field[{kvp.Key}] ({bytes.Length} bytes) ---");
-                            try
-                            {
-                                var nestedResult = Blueprotobuf.Decode(bytes);
-                                Console.WriteLine($"Nested field count: {nestedResult.Count}");
-                                
-                                // Search for 2011 in the nested structure
-                                Console.WriteLine("\n*** Searching for value 2011 (Master Score) ***");
-                                SearchForValueInDict(nestedResult, 2011, $"Field[{kvp.Key}]");
-                                
-                                // Print first 10 nested fields
-                                int count = 0;
-                                foreach (var nestedKvp in nestedResult)
-                                {
-                                    if (count++ > 10) break;
-                                    var nestedField = nestedKvp.Value;
-                                    if (nestedField is List<object> list)
-                                    {
-                                        Console.WriteLine($"Field[{kvp.Key}][{nestedKvp.Key}]: [List with {list.Count} items]");
-                                        for (int j = 0; j < list.Count && j < 3; j++)
-                                        {
-                                            Console.WriteLine($"  [{j}]: {FormatFieldValue(list[j])}");
-                                        }
-                                    }
-                                    else if (nestedField is ulong ul)
-                                    {
-                                        Console.WriteLine($"Field[{kvp.Key}][{nestedKvp.Key}]: {ul} (0x{ul:X})");
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine($"Field[{kvp.Key}][{nestedKvp.Key}]: {FormatFieldValue(nestedField)}");
-                                    }
-                                }
-                            }
-                            catch (Exception nex)
-                            {
-                                Console.WriteLine($"Error decoding nested Field[{kvp.Key}]: {nex.Message}");
-                            }
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"  Value: {FormatFieldValue(field)}");
-                    }
-                }
-                
-                Console.WriteLine($"================================================");
-            } catch (Exception ex)
-            {
-                Console.WriteLine($"Error trying Blueprotobuf.Decode: {ex.Message}");
-            }
-
             Dictionary<int, GuildMemberActivityData> activityData = new Dictionary<int, GuildMemberActivityData>();
             Dictionary<int, GuildMemberData> memberData = new Dictionary<int, GuildMemberData>();
 
@@ -831,18 +657,18 @@ namespace StarResonanceDpsAnalysis.Core
             if(memberData.Count > 0 && activityData.Count > 0)
             {
                 //this means this is the roster data, proceed
-                DebugLog($"Member data count: {memberData.Count}");
-                DebugLog($"Activity data count: {activityData.Count}");
+                DebugLog($"[GUILD ROSTER] Member data count: {memberData.Count}");
+                DebugLog($"[GUILD ROSTER] Activity data count: {activityData.Count}");
                 
                 // Update joined guild data and export to TSV
                 try
                 {
                     GuildRosterExporter.OnRosterProtobufProcessed(memberData, activityData);
-                    DebugLog($"Guild roster OnRosterProtobufProcessed");
+                    DebugLog($"[GUILD ROSTER] OnRosterProtobufProcessed completed");
                 }
                 catch (Exception ex)
                 {
-                    DebugLog($"Failed to export guild roster: {ex.Message}");
+                    DebugLog($"[GUILD ROSTER] Failed to process: {ex.Message}");
                 }
             }
         }

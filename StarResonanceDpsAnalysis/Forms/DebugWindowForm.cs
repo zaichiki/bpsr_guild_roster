@@ -39,9 +39,6 @@ namespace StarResonanceDpsAnalysis.Forms
             // Enable keyboard input handling
             this.KeyPreview = true;
             this.KeyDown += DebugWindowForm_KeyDown;
-            
-            // Prefill player ID input with default value
-            input_PlayerID.Text = "26669";
         }
 
         /// <summary>
@@ -51,8 +48,6 @@ namespace StarResonanceDpsAnalysis.Forms
         {
             TitleText.Font = AppConfig.SaoFont;
             input_Output.Font = new Font("Consolas", 9F);
-            label_PlayerID.Font = AppConfig.ContentFont;
-            input_PlayerID.Font = new Font("Consolas", 9F);
             button_Test1.Font = AppConfig.ContentFont;
             button_Test2.Font = AppConfig.ContentFont;
             button_Clear.Font = AppConfig.ContentFont;
@@ -176,9 +171,18 @@ namespace StarResonanceDpsAnalysis.Forms
         {
             try
             {
-                // Get API endpoint from config or use default
-                // TODO: Make this configurable via UI or config file
-                string apiEndpoint = "https://your-api-endpoint.com/api/master-score";
+                // Read API key from config (using Prod section)
+                var config = Core.GuildRosterServiceConfigHelper.ReadGuildRosterServiceConfig("GuildRosterServiceProd");
+                
+                if (string.IsNullOrEmpty(config.ApiKey))
+                {
+                    AppendDebugText("[ERROR] API Key not configured!");
+                    AppendDebugText("Please set ApiKey in private_config.ini under [GuildRosterServiceProd] section.");
+                    return;
+                }
+                
+                // Use the specified endpoint
+                string apiEndpoint = "https://orca-app-xsrfn.ondigitalocean.app/members/masterscore";
                 
                 AppendDebugText("========================================");
                 AppendDebugText($"[{DateTime.Now:HH:mm:ss}] Sending Master Score data to API");
@@ -191,16 +195,17 @@ namespace StarResonanceDpsAnalysis.Forms
                 if (count == 0)
                 {
                     AppendDebugText("[WARNING] No data collected yet!");
-                    AppendDebugText("Start the game and click guild members to collect data.");
+                    AppendDebugText("Run automation first to collect Master Score data.");
                     return;
                 }
                 
                 AppendDebugText("Sending data...");
-                bool success = await Core.MasterScoreCollector.SendToApiAsync(apiEndpoint);
+                bool success = await Core.MasterScoreCollector.SendToApiAsync(apiEndpoint, config.ApiKey);
                 
                 if (success)
                 {
                     AppendDebugText("[SUCCESS] Data sent successfully!");
+                    AppendDebugText("Check console for API response details.");
                 }
                 else
                 {

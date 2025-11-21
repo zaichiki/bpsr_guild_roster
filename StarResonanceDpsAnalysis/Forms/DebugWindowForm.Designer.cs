@@ -34,8 +34,6 @@ namespace StarResonanceDpsAnalysis.Forms
             panel1 = new AntdUI.Panel();
             input_Output = new AntdUI.Input();
             panel2 = new AntdUI.Panel();
-            label_PlayerID = new AntdUI.Label();
-            input_PlayerID = new AntdUI.Input();
             button_Test1 = new AntdUI.Button();
             button_Test2 = new AntdUI.Button();
             button_Clear = new AntdUI.Button();
@@ -99,8 +97,6 @@ namespace StarResonanceDpsAnalysis.Forms
             // 
             // panel2
             // 
-            panel2.Controls.Add(label_PlayerID);
-            panel2.Controls.Add(input_PlayerID);
             panel2.Controls.Add(button_Test1);
             panel2.Controls.Add(button_Test2);
             panel2.Controls.Add(button_Clear);
@@ -111,30 +107,6 @@ namespace StarResonanceDpsAnalysis.Forms
             panel2.Padding = new System.Windows.Forms.Padding(10);
             panel2.Size = new System.Drawing.Size(800, 60);
             panel2.TabIndex = 2;
-            // 
-            // label_PlayerID
-            // 
-            label_PlayerID.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left;
-            label_PlayerID.Font = new System.Drawing.Font("HarmonyOS Sans SC", 9F);
-            label_PlayerID.Location = new System.Drawing.Point(10, 17);
-            label_PlayerID.Name = "label_PlayerID";
-            label_PlayerID.Size = new System.Drawing.Size(80, 25);
-            label_PlayerID.TabIndex = 4;
-            label_PlayerID.Text = "Player ID:";
-            label_PlayerID.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-            label_PlayerID.Visible = false;
-            // 
-            // input_PlayerID
-            // 
-            input_PlayerID.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left;
-            input_PlayerID.Font = new System.Drawing.Font("Consolas", 9F);
-            input_PlayerID.Location = new System.Drawing.Point(95, 15);
-            input_PlayerID.Name = "input_PlayerID";
-            input_PlayerID.PlaceholderText = "Enter player ID...";
-            input_PlayerID.Size = new System.Drawing.Size(120, 30);
-            input_PlayerID.TabIndex = 5;
-            input_PlayerID.Text = "";
-            input_PlayerID.Visible = false;
             // 
             // button_Test1
             // 
@@ -216,8 +188,6 @@ namespace StarResonanceDpsAnalysis.Forms
         private AntdUI.Panel panel1;
         private AntdUI.Input input_Output;
         private AntdUI.Panel panel2;
-        private AntdUI.Label label_PlayerID;
-        private AntdUI.Input input_PlayerID;
         private AntdUI.Button button_Test1;
         private AntdUI.Button button_Test2;
         private AntdUI.Button button_Clear;

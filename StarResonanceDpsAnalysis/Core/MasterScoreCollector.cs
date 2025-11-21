@@ -225,7 +225,6 @@ namespace StarResonanceDpsAnalysis.Core
 
         /// <summary>
         /// Extract player ID and name from the decoded protobuf structure
-        /// Looking for UID 26669 with master score 2011
         /// </summary>
         private static void ExtractPlayerInfo(Dictionary<int, object> data, int masterScore, string? playerNameFromRaw = null)
         {
@@ -272,6 +271,64 @@ namespace StarResonanceDpsAnalysis.Core
             lock (_lock)
             {
                 return (_isCollecting, _collectedData.Count);
+            }
+        }
+
+        /// <summary>
+        /// Send Master Score data to REST API endpoint
+        /// </summary>
+        /// <param name="endpoint">API endpoint URL</param>
+        /// <param name="apiKey">API key for authentication</param>
+        /// <returns>True if successful, false otherwise</returns>
+        public static async Task<bool> SendToApiAsync(string endpoint, string apiKey)
+        {
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    // Prepare data in the format required by the API: [{ userId: int, masterScore: int }]
+                    List<object> apiData;
+                    lock (_lock)
+                    {
+                        apiData = _collectedData.Values.Select(data => new
+                        {
+                            userId = data.PlayerId,
+                            masterScore = data.MasterScore
+                        }).ToList<object>();
+                    }
+
+                    string jsonPayload = System.Text.Json.JsonSerializer.Serialize(apiData);
+                    Console.WriteLine($"[MASTER SCORE API] Sending {apiData.Count} records to {endpoint}");
+                    Console.WriteLine($"[MASTER SCORE API] Payload: {jsonPayload}");
+
+                    // Create HTTP request with PATCH method
+                    var request = new HttpRequestMessage(new HttpMethod("PATCH"), endpoint);
+                    request.Headers.Add("X-API-Key", apiKey);
+                    request.Content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
+
+                    // Send request
+                    HttpResponseMessage response = await client.SendAsync(request);
+
+                    // Read response
+                    string responseBody = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[MASTER SCORE API] Response status: {response.StatusCode}");
+                    Console.WriteLine($"[MASTER SCORE API] Response body: {responseBody}");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[MASTER SCORE API] Failed with status {response.StatusCode}: {responseBody}");
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[MASTER SCORE API] Exception: {ex.Message}");
+                return false;
             }
         }
     }

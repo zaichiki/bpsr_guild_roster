@@ -172,7 +172,7 @@
     <value>Guild Roster</value>
   </data>
   <data name="Menu_DebugWindow" xml:space="preserve">
-    <value>Debug Window</value>
+    <value>Master Score Collector</value>
   </data>
   <data name="Menu_PilingMode" xml:space="preserve">
     <value>DPS Benchmark</value>
