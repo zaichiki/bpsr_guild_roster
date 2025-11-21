@@ -74,7 +74,12 @@ namespace StarResonanceDpsAnalysis.Forms
         /// <summary>
         /// Analyzer
         /// </summary>
-        private PacketAnalyzer PacketAnalyzer { get; } = new(); // # Packet capture/analyzer: each arriving packet is processed by this analyzer
+        public PacketAnalyzer PacketAnalyzer { get; } = new(); // # Packet capture/analyzer: each arriving packet is processed by this analyzer
+        
+        /// <summary>
+        /// Public static accessor to PacketAnalyzer for external access
+        /// </summary>
+        public static PacketAnalyzer? CurrentPacketAnalyzer { get; private set; } = null;
         #endregion
 
         /// <summary>
@@ -574,6 +579,18 @@ namespace StarResonanceDpsAnalysis.Forms
                 return;
             }
 
+            // Apply DPS/Healing/Taken boost multipliers for display
+            foreach (var row in uiList)
+            {
+                double multiplier = AppConfig.GetUserBoostMultiplier((ulong)row.Uid);
+                if (multiplier != 1.0)
+                {
+                    // Apply multiplier to display values only
+                    row.Total = (ulong)(row.Total * multiplier);
+                    row.PerSecond = row.PerSecond * multiplier;
+                }
+            }
+
             var ordered = uiList.OrderByDescending(x => x.Total).ToList();
 
             double teamSum = uiList.Sum(x => (double)x.Total);
@@ -647,7 +664,15 @@ namespace StarResonanceDpsAnalysis.Forms
                     // Only sub-profession; if no sub-profession use combat power; otherwise only show nickname
                     string sp = Common.GetTranslatedSubProfession(p.SubProfession);
 
-                    row[1].Text = $"{p.Nickname}-{sp}({p.CombatPower})"; //TODO come back here, update subprofession when changing language
+                    // Add boost indicator if user is boosted
+                    string boostIndicator = "";
+                    double multiplier = AppConfig.GetUserBoostMultiplier((ulong)p.Uid);
+                    if (AppConfig.ShowBoostIndicator && multiplier != 1.0)
+                    {
+                        boostIndicator = $" ⭐×{multiplier}";
+                    }
+
+                    row[1].Text = $"{p.Nickname}-{sp}({p.CombatPower}){boostIndicator}"; //TODO come back here, update subprofession when changing language
 
 
                     row[2].Text = $"{totalFmt} ({perSec})";

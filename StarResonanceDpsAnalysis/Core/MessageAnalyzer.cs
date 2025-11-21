@@ -22,6 +22,21 @@ namespace StarResonanceDpsAnalysis.Core
     /// </summary>
     public class MessageAnalyzer
     {
+        // Debug logging flag for TYPE3 messages - set to true to enable detailed console output
+        private static readonly bool EnableType3Logging = false;
+
+        /// <summary>
+        /// Logs TYPE3 debug messages to console if debug logging is enabled
+        /// </summary>
+        /// <param name="message">The message to log</param>
+        private static void Type3Log(string message)
+        {
+            if (EnableType3Logging)
+            {
+                Console.WriteLine($"[TYPE3] {message}");
+            }
+        }
+
         /// <summary>
         /// Top-level message type handlers
         /// Key = Message type ID (lower 15 bits)
@@ -286,17 +301,17 @@ namespace StarResonanceDpsAnalysis.Core
                 var sequenceNumber = payloadReader.ReadUInt32BE();   // 00 00 00 7C (124)
                 var flags = payloadReader.ReadUInt32BE();           // 00 00 00 00
 
-                Console.WriteLine($"[TYPE3] MessageType: {messageType}, Sequence: {sequenceNumber}, Flags: 0x{flags:X8}");
+                Type3Log($"MessageType: {messageType}, Sequence: {sequenceNumber}, Flags: 0x{flags:X8}");
                 
                 // Read remaining payload after header (this is the Protobuf data)
                 byte[] protobufData = payloadReader.ReadRemaining();
-                //Console.WriteLine($"[TYPE3] Protobuf data size: {protobufData.Length} bytes");
+                //Type3Log($"Protobuf data size: {protobufData.Length} bytes");
                 
                 // Log first 128 bytes as hex for preview
                 var headerSize = Math.Min(128, protobufData.Length);
                 var headerBytes = new byte[headerSize];
                 Array.Copy(protobufData, 0, headerBytes, 0, headerSize);
-                Console.WriteLine($"[TYPE3 BYTES] {BitConverter.ToString(headerBytes).Replace("-", " ")}");
+                Type3Log($"BYTES: {BitConverter.ToString(headerBytes).Replace("-", " ")}");
                 
                 // Also output as ASCII for text analysis
                 StringBuilder asciiBuilder = new StringBuilder();
@@ -312,14 +327,17 @@ namespace StarResonanceDpsAnalysis.Core
                         asciiBuilder.Append('.');
                     }
                 }
-                Console.WriteLine($"[TYPE3 ASCII] {asciiBuilder}");
+                Type3Log($"ASCII: {asciiBuilder}");
+                
+                // Send to Master Score collector if it's active
+                MasterScoreCollector.ProcessType3Message(protobufData);
                 
                 // Analyze the protobuf data with our new analyzer
                 ProtobufAnalyzer.AnalyzeUnknownData(protobufData, "Type3 Message");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[TYPE3] Error parsing header: {ex.Message}");                
+                Type3Log($"Error parsing header: {ex.Message}");                
             }
         }
 

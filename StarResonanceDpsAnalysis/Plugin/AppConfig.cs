@@ -26,6 +26,21 @@ namespace StarResonanceDpsAnalysis.Plugin
     /// </summary>
     public class AppConfig
     {
+        // Debug logging flag for DpsBoost - set to true to enable detailed console output
+        private static readonly bool EnableDpsBoostLogging = false;
+
+        /// <summary>
+        /// Logs DpsBoost debug messages to console if debug logging is enabled
+        /// </summary>
+        /// <param name="message">The message to log</param>
+        private static void DpsBoostLog(string message)
+        {
+            if (EnableDpsBoostLogging)
+            {
+                Console.WriteLine($"[DpsBoost] {message}");
+            }
+        }
+
         public static UserLocalCache cache = new StarResonanceDpsAnalysis.Core.UserLocalCache();
 
 
@@ -225,7 +240,7 @@ namespace StarResonanceDpsAnalysis.Plugin
 
         // 清空历史数据的快捷键，null 表示未设置
         private static Keys? _clearHistoryKey = null;
-        private static string _damageDisplayType = null;
+        private static string? _damageDisplayType = null;
 
         private static string? _language = null;
 
@@ -694,19 +709,153 @@ namespace StarResonanceDpsAnalysis.Plugin
         }
 
         /// <summary>
-        /// # 分类：写入配置（包装）
-        /// 将指定的值写入到 INI 配置文件的指定 Section 和 Key 中。
-        /// - 写入失败通常源自路径不存在、磁盘只读或权限不足；本函数不抛异常，必要时请在外部做返回值检查或日志记录。
-        /// - 成功写入后，对应静态属性的“缓存值”也会在 setter 中同步更新，避免读到旧值。
+        /// # Category: Write Configuration (Wrapper)
+        /// Writes the specified value to the designated Section and Key in the INI configuration file.
+        /// - Write failures typically stem from non-existent paths, read-only disks, or insufficient permissions; this function does not throw exceptions, perform return value checks or logging externally if necessary.
+        /// - After successful write, the corresponding static property's "cached value" will also be synchronized in the setter to avoid reading stale values.
         /// </summary>
-        /// <param name="section">配置节名称（Section）</param>
-        /// <param name="key">键名称（Key）</param>
-        /// <param name="value">要写入的值</param>
+        /// <param name="section">Configuration section name (Section)</param>
+        /// <param name="key">Key name (Key)</param>
+        /// <param name="value">Value to write</param>
         public static void SetValue(string section, string key, string value)
         {
             // 调用 WinAPI WritePrivateProfileString 写入 INI 文件
             WritePrivateProfileString(section, key, value, FilePath);
         }
+
+        #region DPS Boost Configuration
+        // Private fields for DPS boost feature
+        private static Dictionary<ulong, double>? _boostedUsers = null;
+        private static bool? _showBoostIndicator = null;
+
+        /// <summary>
+        /// Get the dictionary of boosted users (UID -> Multiplier)
+        /// </summary>
+        public static Dictionary<ulong, double> BoostedUsers
+        {
+            get
+            {
+                if (_boostedUsers == null)
+                {
+                    _boostedUsers = new Dictionary<ulong, double>();
+                    var value = GetValue("DpsBoost", "BoostedUsers", string.Empty);
+
+                    if (!string.IsNullOrWhiteSpace(value))
+                    {
+                        DpsBoostLog($"Raw config value: '{value}'");
+                        try
+                        {
+                            // Parse format: UID1:Multiplier1,UID2:Multiplier2
+                            var entries = value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                            DpsBoostLog($"Found {entries.Length} entries to parse");
+                            foreach (var entry in entries)
+                            {
+                                DpsBoostLog($"Parsing entry: '{entry}'");
+                                var parts = entry.Split(':');
+                                DpsBoostLog($"Split into {parts.Length} parts: ['{parts[0]}', '{(parts.Length > 1 ? parts[1] : "")}']");
+                                
+                                if (parts.Length == 2
+                                    && ulong.TryParse(parts[0].Trim(), out ulong uid)
+                                    && double.TryParse(parts[1].Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double multiplier)
+                                    && multiplier > 0)
+                                {
+                                    _boostedUsers[uid] = multiplier;
+                                    DpsBoostLog($"Successfully added UID {uid} with multiplier {multiplier}");
+                                }
+                                else
+                                {
+                                    DpsBoostLog($"Failed to parse entry: '{entry}'");
+                                }
+                            }
+                            DpsBoostLog($"Loaded {_boostedUsers.Count} boosted users from config");
+                        }
+                        catch (Exception ex)
+                        {
+                            DpsBoostLog($"Error parsing BoostedUsers config: {ex.Message}");
+                            _boostedUsers.Clear();
+                        }
+                    }
+                    else
+                    {
+                        DpsBoostLog("BoostedUsers config value is empty or whitespace");
+                    }
+                }
+                return _boostedUsers;
+            }
+        }
+
+        /// <summary>
+        /// Whether to show a visual indicator for boosted users
+        /// </summary>
+        public static bool ShowBoostIndicator
+        {
+            get
+            {
+                if (!_showBoostIndicator.HasValue)
+                {
+                    var value = GetValue("DpsBoost", "ShowBoostIndicator", "true");
+                    _showBoostIndicator = value.Equals("true", StringComparison.OrdinalIgnoreCase);
+                }
+                return _showBoostIndicator.Value;
+            }
+            set
+            {
+                SetValue("DpsBoost", "ShowBoostIndicator", value.ToString().ToLower());
+                _showBoostIndicator = value;
+            }
+        }
+
+        /// <summary>
+        /// Get multiplier for a specific UID (returns 1.0 if not boosted)
+        /// </summary>
+        public static double GetUserBoostMultiplier(ulong uid)
+        {
+            return BoostedUsers.TryGetValue(uid, out double multiplier) ? multiplier : 1.0;
+        }
+
+        /// <summary>
+        /// Add or update a boosted user
+        /// </summary>
+        public static void SetBoostedUser(ulong uid, double multiplier)
+        {
+            if (multiplier <= 0) throw new ArgumentException("Multiplier must be positive");
+
+            var users = BoostedUsers;
+            users[uid] = multiplier;
+            SaveBoostedUsers();
+        }
+
+        /// <summary>
+        /// Remove a boosted user
+        /// </summary>
+        public static void RemoveBoostedUser(ulong uid)
+        {
+            var users = BoostedUsers;
+            if (users.Remove(uid))
+            {
+                SaveBoostedUsers();
+            }
+        }
+
+        /// <summary>
+        /// Save the boosted users dictionary to config
+        /// </summary>
+        private static void SaveBoostedUsers()
+        {
+            var users = BoostedUsers;
+            if (users.Count == 0)
+            {
+                SetValue("DpsBoost", "BoostedUsers", string.Empty);
+            }
+            else
+            {
+                var entries = users.Select(kvp => $"{kvp.Key}:{kvp.Value}");
+                var value = string.Join(",", entries);
+                SetValue("DpsBoost", "BoostedUsers", value);
+            }
+            Console.WriteLine($"Saved {users.Count} boosted users to config");
+        }
+        #endregion
 
     }
 }

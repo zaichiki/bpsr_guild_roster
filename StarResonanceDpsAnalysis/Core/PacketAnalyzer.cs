@@ -10,6 +10,7 @@ namespace StarResonanceDpsAnalysis.Core
 {
     public class PacketAnalyzer()
     {
+
         #region ====== Constant Definitions ======
         // === Timeout and Gap Handling ===
         private readonly TimeSpan IdleTimeout = TimeSpan.FromSeconds(10);  // Reset if current stream has no packets for over 10s
@@ -131,6 +132,9 @@ namespace StarResonanceDpsAnalysis.Core
             {
                 // Use PacketDotNet to parse into generic packet object (including Ethernet/IP/TCP etc.)
                 var packet = Packet.ParsePacket(raw.LinkLayerType, raw.Data);
+
+                // Extract Ethernet packet for MAC addresses
+                var ethernetPacket = packet.Extract<EthernetPacket>();
 
                 // Extract TCP packet (returns null if not TCP)
                 var tcpPacket = packet.Extract<TcpPacket>();
@@ -256,6 +260,16 @@ namespace StarResonanceDpsAnalysis.Core
                         return;
                     }
                     // This is already a packet from the identified server
+                    
+                    // Debug: Log packet direction
+                    bool isInbound = (CurrentServer == srcServer);
+                    bool isOutbound = (CurrentServer == revServer);
+                    
+                    // Check if this is an outbound packet (client -> server)
+                    if (isOutbound)
+                    {
+                        return; // Don't process outbound packets as inbound
+                    }
 
                     if (TcpNextSeq == null)
                     {
@@ -390,6 +404,7 @@ namespace StarResonanceDpsAnalysis.Core
 
                 TcpCache.Clear();
                 TcpCacheTime.Clear();
+
              
                 // If previous stream becomes too large, directly discard and replace to save memory
                 if (TcpStream.Capacity > 1 << 20)  // >1MB 就换新，阈值自定

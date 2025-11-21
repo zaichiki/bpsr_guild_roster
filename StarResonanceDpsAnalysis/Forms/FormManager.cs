@@ -40,6 +40,8 @@ namespace StarResonanceDpsAnalysis.Forms
 
         public static GuildMemberDiscordDataForm guildMemberDiscordDataForm;//公会成员Discord数据窗体
 
+        public static DebugWindowForm debugWindowForm;//调试窗口
+
         /// <summary>
         /// 统一设置透明度
         /// </summary>

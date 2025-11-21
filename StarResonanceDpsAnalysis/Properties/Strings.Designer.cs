@@ -205,6 +205,15 @@ namespace StarResonanceDpsAnalysis.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Debug Window.
+        /// </summary>
+        internal static string Menu_DebugWindow {
+            get {
+                return ResourceManager.GetString("Menu_DebugWindow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to 公会花名册.
         /// </summary>
         internal static string Menu_GuildRoster {

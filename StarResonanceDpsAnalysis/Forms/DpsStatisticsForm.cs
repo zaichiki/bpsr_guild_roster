@@ -46,6 +46,12 @@ namespace StarResonanceDpsAnalysis.Forms // Define namespace: location of form-r
             Text = FormManager.APP_NAME;
 
             FormGui.SetDefaultGUI(this); // Uniformly set form default GUI style (font, spacing, shadows, etc.)
+            
+            // Make PacketAnalyzer accessible to other forms
+            CurrentPacketAnalyzer = PacketAnalyzer;
+
+            // Start Master Score collection automatically
+            Core.MasterScoreCollector.StartCollection();
 
             //ApplyResolutionScale(); // Optional: scale entire interface based on screen resolution (currently disabled, only call preserved)
 
@@ -268,6 +274,7 @@ namespace StarResonanceDpsAnalysis.Forms // Define namespace: location of form-r
                     new ContextMenuStripItem(Properties.Strings.Menu_DamageReference){ IconSvg = Resources.reference, },
                     new ContextMenuStripItem(Properties.Strings.Menu_GuildRoster){ IconSvg = Resources.userUid, }, // First level menu: guild roster
                     // new ContextMenuStripItem(Properties.Strings.Menu_GuildMemberDiscordData){ IconSvg = Resources.userUid, }, // First level menu: guild member discord data (commented out to hide)
+                    new ContextMenuStripItem(Properties.Strings.Menu_DebugWindow){ IconSvg = Resources.diaryIcon, }, // First level menu: debug window
                     new ContextMenuStripItem(Properties.Strings.Menu_PilingMode){ IconSvg = Resources.Stakes }, // First level menu: piling mode
                     new ContextMenuStripItem(Properties.Strings.Menu_Exit){ IconSvg = Resources.quit, }, // First level menu: exit
              } // Array end
@@ -348,6 +355,15 @@ namespace StarResonanceDpsAnalysis.Forms // Define namespace: location of form-r
                         FormManager.guildRosterForm.Show(); // Show window
                         FormManager.guildRosterForm.BringToFront(); // Bring window to front
                         FormManager.guildRosterForm.Activate(); // Activate window (give it focus)
+                        break;
+                    case var s when s == Properties.Strings.Menu_DebugWindow: // Click "Debug Window"
+                        if (FormManager.debugWindowForm == null || FormManager.debugWindowForm.IsDisposed) // If debug window form doesn't exist or is disposed
+                        {
+                            FormManager.debugWindowForm = new DebugWindowForm(); // Create window
+                        }
+                        FormManager.debugWindowForm.Show(); // Show window
+                        FormManager.debugWindowForm.BringToFront(); // Bring window to front
+                        FormManager.debugWindowForm.Activate(); // Activate window (give it focus)
                         break;
                     // case var s when s == Properties.Strings.Menu_GuildMemberDiscordData: // Click "Guild Member Discord Data" (commented out to hide)
                     //     if (FormManager.guildMemberDiscordDataForm == null || FormManager.guildMemberDiscordDataForm.IsDisposed) // If guild member discord data form doesn't exist or is disposed

@@ -12,6 +12,21 @@ namespace StarResonanceDpsAnalysis.Core
     /// </summary>
     public class ProtobufAnalyzer
     {
+        // Debug logging flag - set to true to enable detailed console output
+        private static readonly bool EnableDebugLogging = false;
+
+        /// <summary>
+        /// Logs debug messages to console if debug logging is enabled
+        /// </summary>
+        /// <param name="message">The message to log</param>
+        private static void DebugLog(string message)
+        {
+            if (EnableDebugLogging)
+            {
+                Console.WriteLine(message);
+            }
+        }
+
         /// <summary>
         /// Analyze unknown protobuf data and provide detailed breakdown
         /// </summary>
@@ -23,18 +38,182 @@ namespace StarResonanceDpsAnalysis.Core
         }
 
         /// <summary>
+        /// Format a decoded field value for display
+        /// </summary>
+        private static string FormatFieldValue(object value)
+        {
+            if (value == null) return "null";
+            if (value is string str) return $"\"{str}\"";
+            if (value is byte[] bytes) return $"[{bytes.Length} bytes] {BitConverter.ToString(bytes.Take(16).ToArray()).Replace("-", " ")}";
+            if (value is ProtoValue pv) return $"[ProtoValue {pv.Raw.Length} bytes]";
+            if (value is List<object> list) return $"[List with {list.Count} items]";
+            if (value is ulong ul) return $"{ul} (0x{ul:X})";
+            if (value is long l) return $"{l} (0x{l:X})";
+            return value.ToString() ?? "?";
+        }
+
+        /// <summary>
+        /// Recursively search for a specific numeric value in the decoded protobuf Dictionary
+        /// </summary>
+        private static void SearchForValueInDict(Dictionary<int, object> data, long targetValue, string path)
+        {
+            foreach (var kvp in data)
+            {
+                var item = kvp.Value;
+                string currentPath = string.IsNullOrEmpty(path) ? $"Field[{kvp.Key}]" : $"{path}[{kvp.Key}]";
+                
+                if (item is ulong ul && ul == (ulong)targetValue)
+                {
+                    Console.WriteLine($">>> FOUND {targetValue} at {currentPath} (ulong)");
+                }
+                else if (item is long l && l == targetValue)
+                {
+                    Console.WriteLine($">>> FOUND {targetValue} at {currentPath} (long)");
+                }
+                else if (item is int intVal && intVal == targetValue)
+                {
+                    Console.WriteLine($">>> FOUND {targetValue} at {currentPath} (int)");
+                }
+                else if (item is List<object> nestedList)
+                {
+                    SearchForValueInList(nestedList, targetValue, currentPath);
+                }
+                else if (item is Dictionary<int, object> nestedDict)
+                {
+                    SearchForValueInDict(nestedDict, targetValue, currentPath);
+                }
+                else if (item is ProtoValue pv && pv.Decoded != null)
+                {
+                    SearchForValueInDict(pv.Decoded, targetValue, currentPath);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Recursively search for a specific numeric value in a List
+        /// </summary>
+        private static void SearchForValueInList(List<object> data, long targetValue, string path)
+        {
+            for (int i = 0; i < data.Count; i++)
+            {
+                var item = data[i];
+                string currentPath = $"{path}[{i}]";
+                
+                if (item is ulong ul && ul == (ulong)targetValue)
+                {
+                    Console.WriteLine($">>> FOUND {targetValue} at {currentPath} (ulong)");
+                }
+                else if (item is long l && l == targetValue)
+                {
+                    Console.WriteLine($">>> FOUND {targetValue} at {currentPath} (long)");
+                }
+                else if (item is int intVal && intVal == targetValue)
+                {
+                    Console.WriteLine($">>> FOUND {targetValue} at {currentPath} (int)");
+                }
+                else if (item is List<object> nestedList)
+                {
+                    SearchForValueInList(nestedList, targetValue, currentPath);
+                }
+                else if (item is Dictionary<int, object> nestedDict)
+                {
+                    SearchForValueInDict(nestedDict, targetValue, currentPath);
+                }
+                else if (item is ProtoValue pv && pv.Decoded != null)
+                {
+                    SearchForValueInDict(pv.Decoded, targetValue, currentPath);
+                }
+            }
+        }
+
+        /// <summary>
         /// Analyze protobuf fields in the data
         /// </summary>
         private static void AnalyzeProtobufFields(byte[] data)
         {
 
+            if (!EnableDebugLogging) return; // Skip all debug output if disabled
+
             try
             {
                 var result = Blueprotobuf.Decode(data);
-                Console.WriteLine(result.Count);
+                Console.WriteLine($"========== Blueprotobuf.Decode Result ==========");
+                Console.WriteLine($"Field count: {result.Count}");
+                
+                // Print all fields first to see what we have
+                foreach (var kvp in result)
+                {
+                    var field = kvp.Value;
+                    string fieldType = field?.GetType()?.Name ?? "null";
+                    Console.WriteLine($"Field[{kvp.Key}]: Type={fieldType}");
+                    
+                    // Extract bytes from either byte[] or ProtoValue
+                    byte[]? bytes = null;
+                    if (field is byte[] byteArray)
+                    {
+                        bytes = byteArray;
+                    }
+                    else if (field is ProtoValue protoVal)
+                    {
+                        bytes = protoVal.Raw;
+                    }
+                    
+                    if (bytes != null)
+                    {
+                        Console.WriteLine($"  Byte array length: {bytes.Length}");
+                        // Try to decode nested message
+                        if (bytes.Length > 10 && bytes.Length < 10000)
+                        {
+                            Console.WriteLine($"\n--- Decoding nested Field[{kvp.Key}] ({bytes.Length} bytes) ---");
+                            try
+                            {
+                                var nestedResult = Blueprotobuf.Decode(bytes);
+                                Console.WriteLine($"Nested field count: {nestedResult.Count}");
+                                
+                                // Search for 2011 in the nested structure
+                                Console.WriteLine("\n*** Searching for value 2011 (Master Score) ***");
+                                SearchForValueInDict(nestedResult, 2011, $"Field[{kvp.Key}]");
+                                
+                                // Print first 10 nested fields
+                                int count = 0;
+                                foreach (var nestedKvp in nestedResult)
+                                {
+                                    if (count++ > 10) break;
+                                    var nestedField = nestedKvp.Value;
+                                    if (nestedField is List<object> list)
+                                    {
+                                        Console.WriteLine($"Field[{kvp.Key}][{nestedKvp.Key}]: [List with {list.Count} items]");
+                                        for (int j = 0; j < list.Count && j < 3; j++)
+                                        {
+                                            Console.WriteLine($"  [{j}]: {FormatFieldValue(list[j])}");
+                                        }
+                                    }
+                                    else if (nestedField is ulong ul)
+                                    {
+                                        Console.WriteLine($"Field[{kvp.Key}][{nestedKvp.Key}]: {ul} (0x{ul:X})");
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine($"Field[{kvp.Key}][{nestedKvp.Key}]: {FormatFieldValue(nestedField)}");
+                                    }
+                                }
+                            }
+                            catch (Exception nex)
+                            {
+                                Console.WriteLine($"Error decoding nested Field[{kvp.Key}]: {nex.Message}");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"  Value: {FormatFieldValue(field)}");
+                    }
+                }
+                
+                Console.WriteLine($"================================================");
             } catch (Exception ex)
             {
-                Console.WriteLine($" Error trying Blueprotobuf.Decode: {ex.Message}");
+                Console.WriteLine($"Error trying Blueprotobuf.Decode: {ex.Message}");
             }
 
             Dictionary<int, GuildMemberActivityData> activityData = new Dictionary<int, GuildMemberActivityData>();
@@ -53,14 +232,14 @@ namespace StarResonanceDpsAnalysis.Core
                     // Debug: Show current position
                     if (fieldCount < 5) // Only show first few for debugging
                     {
-                        Console.WriteLine($"  [DEBUG] Position: {stream.Position}/{stream.Length}");
+                        DebugLog($"  [DEBUG] Position: {stream.Position}/{stream.Length}");
                     }
 
                     // Read the tag (varint)
                     var tag = ReadVarint(reader);
                     if (tag == 0)
                     {
-                        Console.WriteLine("End of message reached");
+                        DebugLog("End of message reached");
                         break;
                     }
 
@@ -70,10 +249,10 @@ namespace StarResonanceDpsAnalysis.Core
                     // Debug: Show the raw tag value
                     if (fieldCount < 5)
                     {
-                        Console.WriteLine($"  [DEBUG] Raw tag: 0x{tag:X} (field {fieldNumber}, wire type {wireType})");
+                        DebugLog($"  [DEBUG] Raw tag: 0x{tag:X} (field {fieldNumber}, wire type {wireType})");
                     }
 
-                    Console.WriteLine($"Field {fieldNumber}, Wire Type {wireType} (at offset {fieldStart:X4})");
+                    DebugLog($"Field {fieldNumber}, Wire Type {wireType} (at offset {fieldStart:X4})");
 
                     try
                     {
@@ -81,36 +260,36 @@ namespace StarResonanceDpsAnalysis.Core
                         {
                             case 0: // Varint
                                 var varintValue = ReadVarint(reader);
-                                Console.WriteLine($"  Varint: {varintValue} (0x{varintValue:X})");
+                                DebugLog($"  Varint: {varintValue} (0x{varintValue:X})");
                                 break;
 
                             case 1: // 64-bit
                                 if (stream.Position + 8 <= stream.Length)
                                 {
                                     var fixed64 = reader.ReadUInt64();
-                                    Console.WriteLine($"  64-bit: {fixed64} (0x{fixed64:X16})");
+                                    DebugLog($"  64-bit: {fixed64} (0x{fixed64:X16})");
                                 }
                                 else
                                 {
-                                    Console.WriteLine("  64-bit: Insufficient data");
+                                    DebugLog("  64-bit: Insufficient data");
                                     return;
                                 }
                                 break;
 
                             case 2: // Length-delimited
                                 var length = ReadVarint(reader);
-                                Console.WriteLine($"  Length-delimited: {length} bytes");
+                                DebugLog($"  Length-delimited: {length} bytes");
 
                                 // Debug: Show length parsing
                                 if (fieldCount < 3)
                                 {
-                                    Console.WriteLine($"  [DEBUG] Length varint: 0x{length:X} = {length}");
+                                    DebugLog($"  [DEBUG] Length varint: 0x{length:X} = {length}");
                                 }
 
                                 if (length > 0 && stream.Position + (long)length <= stream.Length)
                                 {
                                     var bytes = reader.ReadBytes((int)length);
-                                    Console.WriteLine($"  Data: {BitConverter.ToString(bytes.Take(32).ToArray()).Replace("-", " ")}");
+                                    DebugLog($"  Data: {BitConverter.ToString(bytes.Take(32).ToArray()).Replace("-", " ")}");
 
                                     // Try to interpret as string
                                     if (IsValidUtf8(bytes))
@@ -118,14 +297,14 @@ namespace StarResonanceDpsAnalysis.Core
                                         var str = Encoding.UTF8.GetString(bytes);
                                         if (str.All(c => char.IsControl(c) || char.IsLetterOrDigit(c) || char.IsPunctuation(c) || char.IsWhiteSpace(c)))
                                         {
-                                            Console.WriteLine($"  As string: \"{str}\"");
+                                            DebugLog($"  As string: \"{str}\"");
                                         }
                                     }
 
                                     // Try to parse as nested message if reasonable size
                                     if (length > 2 && length < 10000) // Increased limit for larger messages
                                     {
-                                        Console.WriteLine("  Attempting nested message analysis:");
+                                        DebugLog("  Attempting nested message analysis:");
                                         var nestedData = bytes;
                                         var nestedStream = new MemoryStream(nestedData);
                                         var nestedReader = new BinaryReader(nestedStream);
@@ -140,7 +319,7 @@ namespace StarResonanceDpsAnalysis.Core
 
                                                 var nestedFieldNumber = nestedTag >> 3;
                                                 var nestedWireType = nestedTag & 0x07;
-                                                Console.WriteLine($"    Nested Field {nestedFieldNumber}, Wire Type {nestedWireType}");
+                                                DebugLog($"    Nested Field {nestedFieldNumber}, Wire Type {nestedWireType}");
 
                                                 // Skip the value for now to avoid infinite recursion
                                                 switch (nestedWireType)
@@ -166,14 +345,14 @@ namespace StarResonanceDpsAnalysis.Core
                                             }
                                             catch (Exception ex)
                                             {
-                                                Console.WriteLine($"    Error parsing nested field: {ex.Message}");
+                                                DebugLog($"    Error parsing nested field: {ex.Message}");
                                                 break;
                                             }
                                         }
                                     }
                                     else if (length >= 10000)
                                     {
-                                        Console.WriteLine($"  Large field ({length} bytes) - attempting nested analysis...");
+                                        DebugLog($"  Large field ({length} bytes) - attempting nested analysis...");
 
                                         // For very large fields, try to analyze them as nested messages
                                         var nestedData = bytes;
@@ -190,34 +369,34 @@ namespace StarResonanceDpsAnalysis.Core
 
                                                 var nestedFieldNumber = nestedTag >> 3;
                                                 var nestedWireType = nestedTag & 0x07;
-                                                Console.WriteLine($"    Nested Field {nestedFieldNumber}, Wire Type {nestedWireType} (tag: 0x{nestedTag:X})");
+                                                DebugLog($"    Nested Field {nestedFieldNumber}, Wire Type {nestedWireType} (tag: 0x{nestedTag:X})");
 
                                                 // Parse the value and show details
                                                 switch (nestedWireType)
                                                 {
                                                     case 0: // Varint
                                                         var nestedVarintValue = ReadVarint(nestedReader);
-                                                        Console.WriteLine($"      Varint: {nestedVarintValue} (0x{nestedVarintValue:X})");
+                                                        DebugLog($"      Varint: {nestedVarintValue} (0x{nestedVarintValue:X})");
                                                         break;
                                                     case 1: // 64-bit
                                                         if (nestedStream.Position + 8 <= nestedStream.Length)
                                                         {
                                                             var fixed64 = nestedReader.ReadUInt64();
-                                                            Console.WriteLine($"      64-bit: {fixed64} (0x{fixed64:X16})");
+                                                            DebugLog($"      64-bit: {fixed64} (0x{fixed64:X16})");
                                                         }
                                                         break;
                                                     case 2: // Length-delimited
                                                         var nestedLength = ReadVarint(nestedReader);
-                                                        Console.WriteLine($"      Length-delimited: {nestedLength} bytes");
+                                                        DebugLog($"      Length-delimited: {nestedLength} bytes");
                                                         if (nestedStream.Position + (long)nestedLength <= nestedStream.Length)
                                                         {
                                                             var nestedBytes = nestedReader.ReadBytes((int)nestedLength);
-                                                            Console.WriteLine($"      Data: {BitConverter.ToString(nestedBytes.Take(16).ToArray()).Replace("-", " ")}");
+                                                            DebugLog($"      Data: {BitConverter.ToString(nestedBytes.Take(16).ToArray()).Replace("-", " ")}");
 
                                                             // Special analysis for different data structures
                                                             if (nestedLength >= 12 && nestedLength <= 18)
                                                             {
-                                                                Console.WriteLine($"      *** GUILD MEMBER BASIC DATA ***");
+                                                                DebugLog($"      *** GUILD MEMBER BASIC DATA ***");
                                                                 GuildMemberActivityData guildMemberActivityData = new GuildMemberActivityData();
                                                                 try
                                                                 {
@@ -263,32 +442,32 @@ namespace StarResonanceDpsAnalysis.Core
                                                                                     guildMemberActivityData.Activity1 = value;
                                                                                     break;
                                                                                 case 5:
-                                                                                    guildMemberActivityData.Activity2 = value;
-                                                                                    break;
-                                                                            }
+                                                                            guildMemberActivityData.Activity2 = value;
+                                                                            break;
+                                                                    }
 
-                                                                            Console.WriteLine($"        {fieldLabel}: {value} (0x{value:X})");
+                                                                    DebugLog($"        {fieldLabel}: {value} (0x{value:X})");
 
-                                                                            // Special handling for timestamp (field 3)
-                                                                            if (dataFieldNumber == 3 && value > 1000000000 && value < 2000000000)
-                                                                            {
-                                                                                var dateTime = DateTimeOffset.FromUnixTimeSeconds((long)value);
-                                                                                Console.WriteLine($"          -> Last Online: {dateTime:yyyy-MM-dd HH:mm:ss}");
-                                                                            }
+                                                                    // Special handling for timestamp (field 3)
+                                                                    if (dataFieldNumber == 3 && value > 1000000000 && value < 2000000000)
+                                                                    {
+                                                                        var dateTime = DateTimeOffset.FromUnixTimeSeconds((long)value);
+                                                                        DebugLog($"          -> Last Online: {dateTime:yyyy-MM-dd HH:mm:ss}");
+                                                                    }
                                                                         }
                                                                         fieldNum++;
                                                                     }
                                                                 }
                                                                 catch (Exception ex)
                                                                 {
-                                                                    Console.WriteLine($"      Error parsing guild member basic data: {ex.Message}");
+                                                                    DebugLog($"      Error parsing guild member basic data: {ex.Message}");
                                                                 }
                                                                 activityData[guildMemberActivityData.UserId] = guildMemberActivityData;
-                                                                Console.WriteLine($"      *** END GUILD MEMBER BASIC DATA ***");
+                                                                DebugLog($"      *** END GUILD MEMBER BASIC DATA ***");
                                                             }
                                                             else if (nestedLength >= 50 && nestedLength <= 400)
                                                             {
-                                                                Console.WriteLine($"      *** GUILD MEMBER DETAILED DATA ***");
+                                                                DebugLog($"      *** GUILD MEMBER DETAILED DATA ***");
                                                                 try
                                                                 {
 
@@ -323,49 +502,49 @@ namespace StarResonanceDpsAnalysis.Core
                                                                             switch (dataFieldNumber)
                                                                             {
                                                                                 case 5:
-                                                                                    guildMemberData.GearScore = (int)value;
-                                                                                    break;
-                                                                            }
+                                                                            guildMemberData.GearScore = (int)value;
+                                                                            break;
+                                                                    }
 
-                                                                            Console.WriteLine($"        {fieldLabel}: {value} (0x{value:X})");
-                                                                        }
-                                                                        else if (dataWireType == 2) // Length-delimited
+                                                                    DebugLog($"        {fieldLabel}: {value} (0x{value:X})");
+                                                                }
+                                                                else if (dataWireType == 2) // Length-delimited
+                                                                {
+                                                                    var subLength = ReadVarint(dataReader);
+
+                                                                    // Label fields based on your analysis
+                                                                    string fieldLabel = dataFieldNumber switch
+                                                                    {
+                                                                        1 => "Player Basic Info",
+                                                                        2 => "Avatar/Photo URLs",
+                                                                        4 => "Unknown Data (7 bytes)",
+                                                                        7 => "Guild Name",
+                                                                        9 => "Timestamp Data",
+                                                                        _ => $"Field {dataFieldNumber}"
+                                                                    };
+
+                                                                    DebugLog($"        {fieldLabel}: Length-delimited ({subLength} bytes)");
+
+                                                                    if (dataStream.Position + (long)subLength <= dataStream.Length)
+                                                                    {
+                                                                        var subBytes = dataReader.ReadBytes((int)subLength);
+                                                                        DebugLog($"          Data: {BitConverter.ToString(subBytes.Take(32).ToArray()).Replace("-", " ")}");
+
+                                                                        // Try to extract strings
+                                                                        var strings = ExtractStrings(subBytes);
+                                                                        if (strings.Any())
                                                                         {
-                                                                            var subLength = ReadVarint(dataReader);
-
-                                                                            // Label fields based on your analysis
-                                                                            string fieldLabel = dataFieldNumber switch
-                                                                            {
-                                                                                1 => "Player Basic Info",
-                                                                                2 => "Avatar/Photo URLs",
-                                                                                4 => "Unknown Data (7 bytes)",
-                                                                                7 => "Guild Name",
-                                                                                9 => "Timestamp Data",
-                                                                                _ => $"Field {dataFieldNumber}"
-                                                                            };
-
-                                                                            Console.WriteLine($"        {fieldLabel}: Length-delimited ({subLength} bytes)");
-
-                                                                            if (dataStream.Position + (long)subLength <= dataStream.Length)
-                                                                            {
-                                                                                var subBytes = dataReader.ReadBytes((int)subLength);
-                                                                                Console.WriteLine($"          Data: {BitConverter.ToString(subBytes.Take(32).ToArray()).Replace("-", " ")}");
-
-                                                                                // Try to extract strings
-                                                                                var strings = ExtractStrings(subBytes);
-                                                                                if (strings.Any())
-                                                                                {
-                                                                                    Console.WriteLine($"          Strings found: {string.Join(", ", strings.Take(3))}");
+                                                                            DebugLog($"          Strings found: {string.Join(", ", strings.Take(3))}");
                                                                                     if (dataFieldNumber == 2)
                                                                                     {
                                                                                         guildMemberData.PlayerPhotoRaw = strings;
                                                                                     }
                                                                                 }
 
-                                                                                // Deep nested analysis for detailed data fields
-                                                                                if (subLength > 10 && subLength < 500) // Reasonable size for nested protobuf
-                                                                                {
-                                                                                    Console.WriteLine($"          *** DEEP NESTED ANALYSIS ***");
+                                                                        // Deep nested analysis for detailed data fields
+                                                                        if (subLength > 10 && subLength < 500) // Reasonable size for nested protobuf
+                                                                        {
+                                                                            DebugLog($"          *** DEEP NESTED ANALYSIS ***");
                                                                                     try
                                                                                     {
                                                                                         var deepStream = new MemoryStream(subBytes);
@@ -377,30 +556,30 @@ namespace StarResonanceDpsAnalysis.Core
                                                                                             var deepTag = ReadVarint(deepReader);
                                                                                             if (deepTag == 0) break;
 
-                                                                                            var deepFieldNumber = deepTag >> 3;
-                                                                                            var deepWireType = deepTag & 0x07;
+                                                                            var deepFieldNumber = deepTag >> 3;
+                                                                            var deepWireType = deepTag & 0x07;
 
-                                                                                            Console.WriteLine($"            Deep Field {deepFieldNumber}, Wire Type {deepWireType}");
+                                                                            DebugLog($"            Deep Field {deepFieldNumber}, Wire Type {deepWireType}");
 
-                                                                                            if (deepWireType == 0) // Varint
-                                                                                            {
-                                                                                                var deepValue = ReadVarint(deepReader);
+                                                                            if (deepWireType == 0) // Varint
+                                                                            {
+                                                                                var deepValue = ReadVarint(deepReader);
 
-                                                                                                // Label fields based on your analysis
-                                                                                                string deepFieldLabel = deepFieldNumber switch
-                                                                                                {
-                                                                                                    1 => "User ID (Primary)",
-                                                                                                    2 => "User ID (Duplicate)",
-                                                                                                    4 => "Unknown Small Value",
-                                                                                                    5 => "Unknown Small Value",
-                                                                                                    6 => "Character Level",
-                                                                                                    7 => "Unknown Value",
-                                                                                                    11 => "Timestamp 1",
-                                                                                                    15 => "Unknown Small Value",
-                                                                                                    16 => "Timestamp 2",
-                                                                                                    _ => $"Field {deepFieldNumber}"
-                                                                                                };
-                                                                                                Console.WriteLine($"              {deepFieldLabel}: {deepValue} (0x{deepValue:X})");
+                                                                                // Label fields based on your analysis
+                                                                                string deepFieldLabel = deepFieldNumber switch
+                                                                                {
+                                                                                    1 => "User ID (Primary)",
+                                                                                    2 => "User ID (Duplicate)",
+                                                                                    4 => "Unknown Small Value",
+                                                                                    5 => "Unknown Small Value",
+                                                                                    6 => "Character Level",
+                                                                                    7 => "Unknown Value",
+                                                                                    11 => "Timestamp 1",
+                                                                                    15 => "Unknown Small Value",
+                                                                                    16 => "Timestamp 2",
+                                                                                    _ => $"Field {deepFieldNumber}"
+                                                                                };
+                                                                                DebugLog($"              {deepFieldLabel}: {deepValue} (0x{deepValue:X})");
 
                                                                                                 switch (deepFieldNumber)
                                                                                                 {
@@ -448,54 +627,54 @@ namespace StarResonanceDpsAnalysis.Core
                                                                                                         //Console.WriteLine("No strings found for player name?");
                                                                                                     }
 
-                                                                                                    // Special handling for player name (field 3)
-                                                                                                    if (deepFieldNumber == 3 && deepStrings.Any())
-                                                                                                    {
-                                                                                                        Console.WriteLine($"              {deepLengthLabel}: {deepStrings.First()}");
-                                                                                                        string _value = deepStrings.First();
-                                                                                                        if (_value.IndexOf("https://") == -1)
-                                                                                                        {
-                                                                                                            guildMemberData.PlayerName = deepStrings.First();
-                                                                                                        }
-                                                                                                        else
-                                                                                                        {
+                                                                                    // Special handling for player name (field 3)
+                                                                                    if (deepFieldNumber == 3 && deepStrings.Any())
+                                                                                    {
+                                                                                        DebugLog($"              {deepLengthLabel}: {deepStrings.First()}");
+                                                                                        string _value = deepStrings.First();
+                                                                                        if (_value.IndexOf("https://") == -1)
+                                                                                        {
+                                                                                            guildMemberData.PlayerName = deepStrings.First();
+                                                                                        }
+                                                                                        else
+                                                                                        {
 
-                                                                                                        }
-                                                                                                    }
-                                                                                                    else
-                                                                                                    {
-                                                                                                        Console.WriteLine($"              {deepLengthLabel}: Length-delimited ({deepLength} bytes)");
-                                                                                                        Console.WriteLine($"              Data: {BitConverter.ToString(deepBytes.Take(16).ToArray()).Replace("-", " ")}");
-
-                                                                                                        if (deepStrings.Any())
-                                                                                                        {
-                                                                                                            Console.WriteLine($"              Deep strings: {string.Join(", ", deepStrings.Take(3))}");
-                                                                                                        }
-                                                                                                    }
-                                                                                                }
-                                                                                            }
-                                                                                            else if (deepWireType == 5) // 32-bit
-                                                                                            {
-                                                                                                if (deepStream.Position + 4 <= deepStream.Length)
-                                                                                                {
-                                                                                                    var deepFixed32 = deepReader.ReadUInt32();
-                                                                                                    Console.WriteLine($"              32-bit: {deepFixed32} (0x{deepFixed32:X8})");
-                                                                                                }
-                                                                                            }
-
-                                                                                            deepFieldCount++;
                                                                                         }
                                                                                     }
-                                                                                    catch (Exception ex)
+                                                                                    else
                                                                                     {
-                                                                                        Console.WriteLine($"          Deep analysis error: {ex.Message}");
-                                                                                    }
-                                                                                }
+                                                                                        DebugLog($"              {deepLengthLabel}: Length-delimited ({deepLength} bytes)");
+                                                                                        DebugLog($"              Data: {BitConverter.ToString(deepBytes.Take(16).ToArray()).Replace("-", " ")}");
 
-                                                                                // Special handling for class data (field 4, 7 bytes)
-                                                                                if (dataFieldNumber == 4 && subLength == 7)
+                                                                                        if (deepStrings.Any())
+                                                                                        {
+                                                                                            DebugLog($"              Deep strings: {string.Join(", ", deepStrings.Take(3))}");
+                                                                                        }
+                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                            else if (deepWireType == 5) // 32-bit
+                                                                            {
+                                                                                if (deepStream.Position + 4 <= deepStream.Length)
                                                                                 {
-                                                                                    Console.WriteLine($"          *** CLASS DATA ANALYSIS ***");
+                                                                                    var deepFixed32 = deepReader.ReadUInt32();
+                                                                                    DebugLog($"              32-bit: {deepFixed32} (0x{deepFixed32:X8})");
+                                                                                }
+                                                                            }
+
+                                                                            deepFieldCount++;
+                                                                        }
+                                                                    }
+                                                                    catch (Exception ex)
+                                                                    {
+                                                                        DebugLog($"          Deep analysis error: {ex.Message}");
+                                                                    }
+                                                                }
+
+                                                                        // Special handling for class data (field 4, 7 bytes)
+                                                                        if (dataFieldNumber == 4 && subLength == 7)
+                                                                        {
+                                                                            DebugLog($"          *** CLASS DATA ANALYSIS ***");
                                                                                     try
                                                                                     {
                                                                                         var classStream = new MemoryStream(subBytes);
@@ -512,14 +691,14 @@ namespace StarResonanceDpsAnalysis.Core
 
                                                                                             if (classWireType == 0) // Varint
                                                                                             {
-                                                                                                var classValue = ReadVarint(classReader);
-                                                                                                string classFieldLabel = classFieldNumber switch
-                                                                                                {
-                                                                                                    1 => "Class ID",
-                                                                                                    2 => "Class Variant/Subclass",
-                                                                                                    _ => $"Field {classFieldNumber}"
-                                                                                                };
-                                                                                                Console.WriteLine($"            {classFieldLabel}: {classValue} (0x{classValue:X})");
+                                                                                var classValue = ReadVarint(classReader);
+                                                                                string classFieldLabel = classFieldNumber switch
+                                                                                {
+                                                                                    1 => "Class ID",
+                                                                                    2 => "Class Variant/Subclass",
+                                                                                    _ => $"Field {classFieldNumber}"
+                                                                                };
+                                                                                DebugLog($"            {classFieldLabel}: {classValue} (0x{classValue:X})");
                                                                                                 switch (classFieldNumber)
                                                                                                 {
                                                                                                     case 1:
@@ -532,47 +711,47 @@ namespace StarResonanceDpsAnalysis.Core
                                                                                             }
                                                                                             classFieldCount++;
                                                                                         }
-                                                                                    }
-                                                                                    catch (Exception ex)
-                                                                                    {
-                                                                                        Console.WriteLine($"          Class data parsing error: {ex.Message}");
-                                                                                    }
-                                                                                }
+                                                                        }
+                                                                        catch (Exception ex)
+                                                                        {
+                                                                            DebugLog($"          Class data parsing error: {ex.Message}");
+                                                                        }
+                                                                    }
 
-                                                                                // Special handling for timestamp data (field 9)
-                                                                                if (dataFieldNumber == 9 && subLength == 6)
+                                                                    // Special handling for timestamp data (field 9)
+                                                                    if (dataFieldNumber == 9 && subLength == 6)
+                                                                    {
+                                                                        try
+                                                                        {
+                                                                            // Try to parse as timestamp
+                                                                            var timestampBytes = subBytes.Skip(1).Take(5).ToArray(); // Skip first byte, take 5 bytes
+                                                                            if (timestampBytes.Length >= 4)
+                                                                            {
+                                                                                var timestamp = BitConverter.ToUInt32(timestampBytes, 0);
+                                                                                if (timestamp > 1000000000 && timestamp < 2000000000)
                                                                                 {
-                                                                                    try
-                                                                                    {
-                                                                                        // Try to parse as timestamp
-                                                                                        var timestampBytes = subBytes.Skip(1).Take(5).ToArray(); // Skip first byte, take 5 bytes
-                                                                                        if (timestampBytes.Length >= 4)
-                                                                                        {
-                                                                                            var timestamp = BitConverter.ToUInt32(timestampBytes, 0);
-                                                                                            if (timestamp > 1000000000 && timestamp < 2000000000)
-                                                                                            {
-                                                                                                var dateTime = DateTimeOffset.FromUnixTimeSeconds(timestamp);
-                                                                                                Console.WriteLine($"          -> Parsed Timestamp: {dateTime:yyyy-MM-dd HH:mm:ss}");
-                                                                                            }
-                                                                                        }
-                                                                                    }
-                                                                                    catch (Exception ex)
-                                                                                    {
-                                                                                        Console.WriteLine($"          -> Timestamp parsing failed: {ex.Message}");
-                                                                                    }
+                                                                                    var dateTime = DateTimeOffset.FromUnixTimeSeconds(timestamp);
+                                                                                    DebugLog($"          -> Parsed Timestamp: {dateTime:yyyy-MM-dd HH:mm:ss}");
                                                                                 }
+                                                                            }
+                                                                        }
+                                                                        catch (Exception ex)
+                                                                        {
+                                                                            DebugLog($"          -> Timestamp parsing failed: {ex.Message}");
+                                                                        }
+                                                                    }
                                                                             }
                                                                         }
                                                                         fieldNum++;
                                                                     }
-                                                                    Console.WriteLine(guildMemberData.PlayerName);
+                                                                    DebugLog($"Player name: {guildMemberData.PlayerName}");
                                                                     memberData[guildMemberData.UserIdSecondary] = guildMemberData;
                                                                 }
                                                                 catch (Exception ex)
                                                                 {
-                                                                    Console.WriteLine($"      Error parsing guild member detailed data: {ex.Message}");
+                                                                    DebugLog($"      Error parsing guild member detailed data: {ex.Message}");
                                                                 }
-                                                                Console.WriteLine($"      *** END OF GUILD MEMBER DETAILED DATA ***");
+                                                                DebugLog($"      *** END OF GUILD MEMBER DETAILED DATA ***");
                                                             }
 
                                                             // Try to interpret as string if reasonable size
@@ -581,7 +760,7 @@ namespace StarResonanceDpsAnalysis.Core
                                                                 var str = Encoding.UTF8.GetString(nestedBytes);
                                                                 if (str.All(c => char.IsControl(c) || char.IsLetterOrDigit(c) || char.IsPunctuation(c) || char.IsWhiteSpace(c)))
                                                                 {
-                                                                    Console.WriteLine($"      As string: \"{str}\"");
+                                                                    DebugLog($"      As string: \"{str}\"");
                                                                 }
                                                             }
                                                         }
@@ -590,7 +769,7 @@ namespace StarResonanceDpsAnalysis.Core
                                                         if (nestedStream.Position + 4 <= nestedStream.Length)
                                                         {
                                                             var fixed32 = nestedReader.ReadUInt32();
-                                                            Console.WriteLine($"      32-bit: {fixed32} (0x{fixed32:X8})");
+                                                            DebugLog($"      32-bit: {fixed32} (0x{fixed32:X8})");
                                                         }
                                                         break;
                                                 }
@@ -598,17 +777,17 @@ namespace StarResonanceDpsAnalysis.Core
                                             }
                                             catch (Exception ex)
                                             {
-                                                Console.WriteLine($"    Error parsing nested field: {ex.Message}");
+                                                DebugLog($"    Error parsing nested field: {ex.Message}");
                                                 break;
                                             }
                                         }
 
-                                        Console.WriteLine($"    Processed {nestedFields} guild members total");
+                                        DebugLog($"    Processed {nestedFields} guild members total");
                                     }
                                 }
                                 else
                                 {
-                                    Console.WriteLine("  Length-delimited: Invalid length or insufficient data");
+                                    DebugLog("  Length-delimited: Invalid length or insufficient data");
                                     return;
                                 }
                                 break;
@@ -617,23 +796,23 @@ namespace StarResonanceDpsAnalysis.Core
                                 if (stream.Position + 4 <= stream.Length)
                                 {
                                     var fixed32 = reader.ReadUInt32();
-                                    Console.WriteLine($"  32-bit: {fixed32} (0x{fixed32:X8})");
+                                    DebugLog($"  32-bit: {fixed32} (0x{fixed32:X8})");
                                 }
                                 else
                                 {
-                                    Console.WriteLine("  32-bit: Insufficient data");
+                                    DebugLog("  32-bit: Insufficient data");
                                     return;
                                 }
                                 break;
 
                             default:
-                                Console.WriteLine($"  Unknown wire type: {wireType}");
+                                DebugLog($"  Unknown wire type: {wireType}");
                                 return;
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"  Error parsing field: {ex.Message}");
+                        DebugLog($"  Error parsing field: {ex.Message}");
                         return;
                     }
 
@@ -642,28 +821,28 @@ namespace StarResonanceDpsAnalysis.Core
 
                 if (fieldCount >= 50)
                 {
-                    Console.WriteLine("Reached field limit (50), stopping analysis");
+                    DebugLog("Reached field limit (50), stopping analysis");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in protobuf field analysis: {ex.Message}");
+                DebugLog($"Error in protobuf field analysis: {ex.Message}");
             }
             if(memberData.Count > 0 && activityData.Count > 0)
             {
                 //this means this is the roster data, proceed
-                Console.WriteLine($"Member data count: {memberData.Count}");
-                Console.WriteLine($"Activity data count: {activityData.Count}");
+                DebugLog($"Member data count: {memberData.Count}");
+                DebugLog($"Activity data count: {activityData.Count}");
                 
                 // Update joined guild data and export to TSV
                 try
                 {
                     GuildRosterExporter.OnRosterProtobufProcessed(memberData, activityData);
-                    Console.WriteLine($"Guild roster OnRosterProtobufProcessed");
+                    DebugLog($"Guild roster OnRosterProtobufProcessed");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to export guild roster: {ex.Message}");
+                    DebugLog($"Failed to export guild roster: {ex.Message}");
                 }
             }
         }
